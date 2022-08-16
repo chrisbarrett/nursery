@@ -12,6 +12,11 @@ If something reaches a stable state I may publish it if there's interest.
 This repository contains a mix of supporting libraries and things that are
 actually useful.
 
+** INCUBATING [[file:lisp/org-roam-review.el][org-roam-review]]
+Implements a system for managing [[https://maggieappleton.com/evergreens][Evergreen Notes]] on top of org-roam. Provides a
+spaced-repetition system that prompts you to review notes or revisit stubs and
+help them grow to maturity.
+
 ** SPIKE [[file:lisp/org-roam-gc.el][org-roam-gc]]
 Automatically delete empty dailies files so they don't build up forever.
 
@@ -28,3 +33,4 @@ or tags.
 Most packages should be manually installable via =package.el=, assuming you have
 [[https://melpa.org/#/getting-started][MELPA]] set up. But honestly, you're better off just cloning and putting this
 repo's lisp directory in your load path, and manually installing anything that's
+missing off MELPA.
