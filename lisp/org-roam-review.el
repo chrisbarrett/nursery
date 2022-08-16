@@ -538,7 +538,7 @@ them as reviewed with `org-roam-review-accept',
                   (org-roam-review-node-list))))))
 
 (defalias 'org-roam-review-sort-by-title-case-insensitive
-  (-on #'string-lessp (-compose  #'downcase #'org-roam-node-title)))
+  (-on #'string-greaterp (-compose  #'downcase #'org-roam-node-title)))
 
 ;;;###autoload
 (defun org-roam-review-list-by-maturity ()
