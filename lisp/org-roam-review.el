@@ -61,6 +61,7 @@
 (require 'org-drill)
 (require 'org-roam-node)
 (require 'org-roam-dailies)
+(require 'plisty)
 (require 'ts)
 
 (defgroup org-roam-review nil
@@ -363,7 +364,7 @@ When called with a `C-u' prefix arg, clear the current filter."
     (insert (or placeholder org-roam-review-default-placeholder))
     (newline)))
 
-(plist-define org-roam-review-render-args
+(plisty-define org-roam-review-render-args
   :optional (:group-on :nodes :placeholder :sort)
   :required (:root-section))
 

@@ -34,8 +34,9 @@
 
 (require 'dash)
 (require 'org-roam-review)
+(require 'plisty)
 
-(plist-define org-roam-links-graph
+(plisty-define org-roam-links-graph
   :required (:nodes :tree))
 
 (defun org-roam-links--forward-links (node)

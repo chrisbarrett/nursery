@@ -97,7 +97,7 @@
 
 (require 'dash)
 (require 'org-tags-filter)
-(require 'plist)
+(require 'plisty)
 
 (cl-eval-when (compile)
   (require 'org)
@@ -121,7 +121,7 @@ their blocks updated automatically."
 
 
 
-(plist-define org-roam-dblocks-args
+(plisty-define org-roam-dblocks-args
   :optional (:id :match :tags
              :name :indentation-column :content))
 

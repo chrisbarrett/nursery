@@ -25,9 +25,9 @@
 ;;; Code:
 
 (require 'dash)
-(require 'plist)
+(require 'plisty)
 
-(plist-define org-tags-filter
+(plisty-define org-tags-filter
   :optional (:required :forbidden))
 
 (defun org-tags-filter-parse (input)
