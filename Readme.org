@@ -15,6 +15,10 @@ actually useful.
 ** SPIKE [[file:lisp/org-roam-gc.el][org-roam-gc]]
 Automatically delete empty dailies files so they don't build up forever.
 
+** SPIKE [[file:lisp/org-roam-rewrite.el][org-roam-rewrite]]
+Commands for renaming nodes, rewriting links and deleting nodes with redirection
+so you can refactor notes without leaving broken links.
+
 ** INCUBATING [[file:lisp/org-roam-dblocks.el][org-roam-dblocks]]
 Add org dynamic blocks that implement "canned searches" for org-roam. You can
 search for notes or list backlinks, then do additional filtering based on title
