@@ -1,0 +1,11 @@
+#+title: nursery
+#+author: Chris Barrett
+
+This is a repository for Emacs Lisp packages that I think could be useful for
+friends and coworkers. It's an experimental, low-pressure space for me just to
+hack on Lisp without the pressure of supporting issues from the wider Internet. :)
+
+* Installation
+Most packages should be manually installable via =package.el=, assuming you have
+[[https://melpa.org/#/getting-started][MELPA]] set up. But honestly, you're better off just cloning and putting this
+repo's lisp directory in your load path, and manually installing anything that's
