@@ -26,6 +26,10 @@ UI. Contrasts with the normal org-roam buffer, which only shows backlinks.
 Search your org-roam files for a string and display a buffer of results. Results
 are shown with collapsible previews, like in the org-roam buffer.
 
+** INCUBATING [[file:lisp/org-roam-consult.el][org-roam-consult]]
+A version of =consult-ripgrep= that shows node titles instead of filenames so you
+don't have to guess anymore.
+
 ** SPIKE [[file:lisp/org-roam-gc.el][org-roam-gc]]
 Automatically delete empty dailies files so they don't build up forever.
 
