@@ -17,6 +17,11 @@ Implements a system for managing [[https://maggieappleton.com/evergreens][Evergr
 spaced-repetition system that prompts you to review notes or revisit stubs and
 help them grow to maturity.
 
+** INCUBATING [[file:lisp/org-roam-links.el][org-roam-links]]
+Display a tree of backlinks /and/ forward links up to a configurable depth. Useful
+for looking for unexpected connections without busting open a full-fledged graph
+UI. Contrasts with the normal org-roam buffer, which only shows backlinks.
+
 ** SPIKE [[file:lisp/org-roam-gc.el][org-roam-gc]]
 Automatically delete empty dailies files so they don't build up forever.
 
