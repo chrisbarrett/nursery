@@ -25,7 +25,7 @@
 
 ;;; Commentary:
 
-;; Dinky little utilitity library for defining simple schemas for plists.
+;; Dinky little utility library for defining simple schemas for plists.
 
 ;;; Code:
 
