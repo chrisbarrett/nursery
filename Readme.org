@@ -40,6 +40,9 @@ Display a tree of backlinks /and/ forward links up to a configurable depth. Usef
 for looking for unexpected connections without busting open a full-fledged graph
 UI. Contrasts with the normal org-roam buffer, which only shows backlinks.
 
+#+attr_org: :width 650px
+[[file:images/org-roam-links.png]]
+
 ** INCUBATING [[file:lisp/org-roam-consult.el][org-roam-consult]]
 A version of =consult-ripgrep= that shows node titles instead of filenames so you
 don't have to guess anymore.
