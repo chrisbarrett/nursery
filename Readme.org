@@ -9,8 +9,8 @@ hack on Lisp with the garage door open.
 If something reaches a stable state I may publish it if there's interest.
 
 * Objects of interest
-This repository contains a mix of supporting libraries and things that are
-actually useful.
+This repository contains a mix of end-user libraries and supporting libraries.
+The interesting stuff is listed below.
 
 ** INCUBATING [[file:lisp/org-roam-review.el][org-roam-review]]
 Implements a system for managing [[https://maggieappleton.com/evergreens][Evergreen Notes]] on top of org-roam. Provides a
@@ -53,6 +53,5 @@ so you can refactor notes without leaving broken links.
 
 * Installation
 Most packages should be manually installable via =package.el=, assuming you have
-[[https://melpa.org/#/getting-started][MELPA]] set up. But honestly, you're better off just cloning and putting this
-repo's lisp directory in your load path, and manually installing anything that's
-missing off MELPA.
+[[https://melpa.org/#/getting-started][MELPA]] set up. But honestly, you're better off just cloning this repo and putting
+its lisp directory in your load path, then installing anything missing. 🤷
