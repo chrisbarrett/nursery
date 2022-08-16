@@ -179,7 +179,7 @@ their blocks updated automatically."
 ;; blindly clear out the block's content. We then check whether the block
 ;; content needs to be updated.
 
-(defun org-roam-dblocks--prepare-dblock (fn &rest args)
+(define-advice org-prepare-dblock (:around (fn &rest args) org-roam-dblocks-dirty-checks)
   "Advice to hack org's dblock update flow for the dblock types we define.
 
 FN is the advised function, and ARGS are its arguments.
@@ -220,9 +220,6 @@ and old content."
           (goto-char content-start))
 
         params))))
-
-(with-eval-after-load 'org
-  (advice-add 'org-prepare-dblock :around #'org-roam-dblocks--prepare-dblock))
 
 ;;;###autoload
 (defun org-roam-dblocks--write-content (params)
