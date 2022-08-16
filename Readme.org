@@ -5,6 +5,11 @@ This is a repository for Emacs Lisp packages that I think could be useful for
 friends and coworkers. It's an experimental, low-pressure space for me just to
 hack on Lisp without the pressure of supporting issues from the wider Internet. :)
 
+** INCUBATING [[file:lisp/org-roam-dblocks.el][org-roam-dblocks]]
+Add org dynamic blocks that implement "canned searches" for org-roam. You can
+search for notes or list backlinks, then do additional filtering based on title
+or tags.
+
 * Installation
 Most packages should be manually installable via =package.el=, assuming you have
 [[https://melpa.org/#/getting-started][MELPA]] set up. But honestly, you're better off just cloning and putting this
