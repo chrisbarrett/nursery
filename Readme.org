@@ -22,6 +22,10 @@ Display a tree of backlinks /and/ forward links up to a configurable depth. Usef
 for looking for unexpected connections without busting open a full-fledged graph
 UI. Contrasts with the normal org-roam buffer, which only shows backlinks.
 
+** INCUBATING [[file:lisp/org-roam-search.el][org-roam-search]]
+Search your org-roam files for a string and display a buffer of results. Results
+are shown with collapsible previews, like in the org-roam buffer.
+
 ** SPIKE [[file:lisp/org-roam-gc.el][org-roam-gc]]
 Automatically delete empty dailies files so they don't build up forever.
 
