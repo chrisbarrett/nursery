@@ -37,12 +37,13 @@
 ;; Example configuration:
 ;;
 ;;     (use-package org-roam-review
-;;       :hook
-;;       (org-mode . org-roam-note-cache-mode)
+;;       :commands (org-roam-review
+;;                  org-roam-review-list-by-maturity
+;;                  org-roam-review-list-recently-added)
 ;;       ;; Optional - tag all newly-created notes as seedlings
-;;       (org-roam-capture-new-node . org-roam-review-set-seedling)
+;;       :hook (org-roam-capture-new-node . org-roam-review-set-seedling)
 ;;       :general
-;;       ;; optional bindings for evil-mode compatability.
+;;       ;; Optional - bindings for evil-mode compatability.
 ;;       (:states '(normal) :keymaps 'org-roam-review-mode-map
 ;;        "TAB" 'magit-section-cycle
 ;;        "g r" 'org-roam-review-refresh)
@@ -553,47 +554,6 @@ them as reviewed with `org-roam-review-accept',
     :nodes
     (lambda ()
       (seq-filter #'org-roam-review-node-maturity (org-roam-review-node-list))))))
-
-
-;; Outline management stuff.
-
-;; TODO: Remove this once reference management is migrated to Zotero+citar.
-
-;;;###autoload
-(defun org-roam-review-list-outlines ()
-  "List all outline nodes."
-  (interactive)
-  (org-roam-review-display-buffer-and-select
-   (org-roam-review-create-buffer
-    :title "Outline Notes"
-    :instructions "The nodes below are outlines of sources,
-grouped by whether they require further processing."
-    :sort #'org-roam-review-sort-by-title-case-insensitive
-    :nodes
-    (lambda ()
-      (seq-filter (lambda (node)
-                    (seq-contains-p (org-roam-node-tags node)
-                                    "outline"))
-                  (org-roam-review-node-list))))))
-
-;;;###autoload
-(defun org-roam-review-visit-outline (&optional arg)
-  "Choose an ouline node to open.
-
-With a single prefix ARG, show in other another window.
-
-With two prefix args, show the list of outlines instead."
-  (interactive "p")
-  (if (equal 16 arg)
-      (org-roam-review-list-outlines)
-    (org-roam-node-visit
-     (org-roam-node-read nil
-                         (lambda (it)
-                           (and (equal (org-roam-node-level it) 0)
-                                (seq-contains-p (org-roam-node-tags it) "outline")))
-                         nil
-                         t
-                         "Outline: "))))
 
 (defun org-roam-review--node-added-group (node)
   (when-let* ((created (org-roam-review-node-created-at node))
