@@ -270,7 +270,7 @@ handles file titles, tags and transclusions better."
            (relpath (file-name-as-directory org-roam-directory))
            (file-path (expand-file-name
                        (if org-roam-rewrite-confirm-extraction-path-p
-                         (read-file-name "Extract node to: " relpath  template nil template)
+                           (read-file-name "Extract node to: " relpath  template nil template)
                          template)
                        org-roam-directory)))
       (let ((tags (org-get-tags))
