@@ -550,10 +550,7 @@ them as reviewed with `org-roam-review-accept',
     :title "Evergreen Notes"
     :instructions "The nodes below are categorised by maturity."
     :group-on #'org-roam-review--maturity-header
-    :sort #'org-roam-review-sort-by-title-case-insensitive
-    :nodes
-    (lambda ()
-      (seq-filter #'org-roam-review-node-maturity (org-roam-review-node-list))))))
+    :sort #'org-roam-review-sort-by-title-case-insensitive)))
 
 (defun org-roam-review--node-added-group (node)
   (when-let* ((created (org-roam-review-node-created-at node))
