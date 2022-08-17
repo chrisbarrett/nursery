@@ -248,20 +248,25 @@ handles file titles, tags and transclusions better."
     (org-roam-db-update-file)
     (let* ((template-info nil)
            (node (org-roam-node-at-point))
-           (template (org-roam-format-template
-                      (string-trim (org-capture-fill-template org-roam-extract-new-file-path))
-                      (lambda (key default-val)
-                        (let ((fn (intern key))
-                              (node-fn (intern (concat "org-roam-node-" key)))
-                              (ksym (intern (concat ":" key))))
-                          (cond
-                           ((fboundp fn)
-                            (funcall fn node))
-                           ((fboundp node-fn)
-                            (funcall node-fn node))
-                           (t (let ((r (read-from-minibuffer (format "%s: " key) default-val)))
-                                (plist-put template-info ksym r)
-                                r)))))))
+           (template
+            (unwind-protect
+                (progn
+                  (setq org-capture-plist nil)
+                  (org-roam-format-template
+                   (string-trim (org-capture-fill-template org-roam-extract-new-file-path))
+                   (lambda (key default-val)
+                     (let ((fn (intern key))
+                           (node-fn (intern (concat "org-roam-node-" key)))
+                           (ksym (intern (concat ":" key))))
+                       (cond
+                        ((fboundp fn)
+                         (funcall fn node))
+                        ((fboundp node-fn)
+                         (funcall node-fn node))
+                        (t (let ((r (read-from-minibuffer (format "%s: " key) default-val)))
+                             (plist-put template-info ksym r)
+                             r)))))))
+              (setq org-capture-plist nil)))
            (relpath (file-name-as-directory org-roam-directory))
            (file-path (expand-file-name
                        (if org-roam-rewrite-confirm-extraction-path-p
