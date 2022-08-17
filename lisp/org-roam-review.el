@@ -741,16 +741,16 @@ the future."
 This deletes all the properties and tags managed by this
 package."
   (interactive)
-  (org-roam-review--visiting-node-at-point
-    (let ((id (org-entry-get (point-min) "ID")))
-      (unless id
-        (error "No ID in buffer"))
-      (org-with-point-at (org-find-property "ID" id)
-        (org-roam-review--delete-tags-and-properties id)
-        (save-buffer))
-
-      (let ((title (org-roam-node-title (org-roam-node-from-id id))))
-        (message "Excluded node `%s' from reviews" title)))))
+  (org-roam-review--update-review-buffer-entry
+   (org-roam-review--visiting-node-at-point
+     (let ((id (org-entry-get (point-min) "ID")))
+       (unless id
+         (error "No ID in buffer"))
+       (org-with-point-at (org-find-property "ID" id)
+         (org-roam-review--delete-tags-and-properties id)
+         (save-buffer))
+       (let ((title (org-roam-node-title (org-roam-node-from-id id))))
+         (message "Excluded node `%s' from reviews" title))))))
 
 (provide 'org-roam-review)
 
