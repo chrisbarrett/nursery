@@ -429,7 +429,7 @@ When called with a `C-u' prefix arg, clear the current filter."
           (nodes #'org-roam-review-node-list)
           (buffer-name "*org-roam-review*")
           (render 'org-roam-review--render))
-  "Create a node review buffer for nodesusing Evergreen SRS.
+  "Create a buffer for displaying nodes via `magit-section'.
 
 The following keyword arguments are required:
 
