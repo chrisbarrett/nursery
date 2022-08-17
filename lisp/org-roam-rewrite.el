@@ -266,7 +266,7 @@ handles file titles, tags and transclusions better."
            (file-path (expand-file-name
                        (if org-roam-rewrite-confirm-extraction-path-p
                          (read-file-name "Extract node to: " relpath  template nil template)
-                         relpath)
+                         template)
                        org-roam-directory)))
       (let ((tags (org-get-tags))
             (title (org-get-heading))
