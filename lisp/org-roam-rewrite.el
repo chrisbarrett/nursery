@@ -131,8 +131,8 @@ NODE is the node to update.
 
 NEW-TITLE is the new title to use. All backlinks will have their
 descriptions updated to this value."
-  (interactive (let* ((node (org-roam-node-read (-some->> (org-roam-node-at-point) (org-roam-node-title))
-                                                nil nil t "Rename: ")))
+  (interactive (let* ((suggested-title (-some->> (org-roam-node-at-point) (org-roam-node-title)))
+                      (node (org-roam-node-read suggested-title nil nil t "Rename: ")))
                  (list node (read-string "New title: " (org-roam-node-title node)))))
   (org-roam-node-visit node)
   (org-save-all-org-buffers)
@@ -161,7 +161,8 @@ FROM is the node which will be unlinked.
 TO is the node to change those references to point to.
 
 LINK-DESC is the description to use for the updated links."
-  (interactive (let* ((from (org-roam-node-read nil nil nil t "Remove: "))
+  (interactive (let* ((suggested-title (-some->> (org-roam-node-at-point) (org-roam-node-title)))
+                      (from (org-roam-node-read suggested-title nil nil t "Remove: "))
                       (to (org-roam-node-read nil (lambda (it) (not (equal from it))) nil t "Rewrite to: ")))
                  (list from to (read-string "Link description: " (org-roam-node-title to)))))
   (org-save-all-org-buffers)
@@ -190,7 +191,8 @@ SRC-NODE is the node to be removed.
 
 DEST-NODE is the node that will be added to."
   (interactive
-   (let* ((src (org-roam-node-read (-some->> (org-roam-node-at-point) (org-roam-node-title)) nil nil t "Source: "))
+   (let* ((suggested-title (-some->> (org-roam-node-at-point) (org-roam-node-title)))
+          (src (org-roam-node-read suggested-title nil nil t "Source: "))
           (dest (org-roam-node-read nil (lambda (node)
                                           (and
                                            (not (equal (org-roam-node-id node) (org-roam-node-id src)))
