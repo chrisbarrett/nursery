@@ -236,7 +236,7 @@ QUERY is an `org-tags-filter'."
     :instructions "The list below contains nodes matching the given tags."
     :placeholder "No search results"
     :buffer-name org-roam-search-tags-buffer-name
-    :sort (-on #'string-lessp #'org-roam-node-title))))
+    :sort #'org-roam-review-sort-by-title-case-insensitive)))
 
 (provide 'org-roam-search)
 
