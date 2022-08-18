@@ -318,7 +318,7 @@ and old content."
 
 ;;;###autoload
 (defun org-insert-dblock:backlinks ()
-  "Insert a backlinks dynamic block at point."
+  "Insert a dynamic block backlinks at point."
   (interactive)
   (atomic-change-group
     (org-create-dblock (list :name "backlinks")))
@@ -350,7 +350,7 @@ and old content."
 
 ;;;###autoload
 (defun org-insert-dblock:notes ()
-  "Insert a backlinks dynamic block at point."
+  "Insert a dynamic block org-roam notes at point."
   (interactive)
   (let ((args (pcase-exhaustive (completing-read "Query Type: " '("Title Regexp Match" "Tags Filter"))
                 ("Title Regexp Match"
