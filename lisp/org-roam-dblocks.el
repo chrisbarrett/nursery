@@ -84,7 +84,7 @@
 ;;     - multiple tags (and-ed together): (foo "+bar" -baz)
 ;;
 ;; - :filter, and its logical opposite :remove, provide a generic way to decide
-;; - which nodes to include.
+;;   which nodes to include.
 ;;
 ;;      A filter can be a symbol, which is interpreted to be a function name, a
 ;;      lambda expression, or a bare S-expression.
