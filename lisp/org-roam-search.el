@@ -162,7 +162,7 @@
     (progress-reporter-done reporter)
     (seq-filter (lambda (node)
                   (ht-get files (org-roam-node-file node)))
-                (org-roam-review-node-list))))
+                (org-roam-node-list))))
 
 ;;;###autoload
 (defun org-roam-search (query)
