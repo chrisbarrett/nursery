@@ -82,6 +82,27 @@
 ;;     - required: foo, "foo", +foo, "+foo"
 ;;     - forbidden: -foo, "-foo"
 ;;     - multiple tags (and-ed together): (foo "+bar" -baz)
+;;
+;; - :filter, and its logical opposite :remove, provide a generic way to decide
+;; - which nodes to include.
+;;
+;;      A filter can be a symbol, which is interpreted to be a function name, a
+;;      lambda expression, or a bare S-expression.
+;;
+;;      When a function or lambda expression is provided, it will be called on
+;;      each node to decide whether to include that node in results. The given
+;;      function should accept a single argument, which is an `org-roam-node'.
+;;
+;;      Otherwise, the form is interpreted to be an 'anaphoric' S-expression,
+;;      where the symbol `it' is bound to an `org-roam-node', before being
+;;      evaluated.
+;;
+;;      Examples:
+;;      - my-predicate
+;;      - (lambda (node) (equal 0 (org-roam-node-depth node)))
+;;      - (equal 0 (org-roam-node-depth it))
+;;
+;;      If :filter and :remove are both provided, they are logically and-ed.
 
 ;; Keeping blocks up-to-date:
 ;;
@@ -123,7 +144,8 @@ their blocks updated automatically."
 
 (plisty-define org-roam-dblocks-args
   :optional (:id :match :tags
-             :name :indentation-column :content))
+             :name :indentation-column :content
+             :filter :remove))
 
 (defun org-roam-dblocks--node-to-link (node)
   (let ((link (concat "id:" (org-roam-node-id node)))
@@ -149,6 +171,51 @@ their blocks updated automatically."
        (rx-to-string (cons 'and args)
                      t))))))
 
+(defun org-roam-dblocks--parse-predicate (keyword form)
+  ;; Quick tests:
+  ;; (org-roam-dblocks--parse-predicate :foo nil)
+  ;; (org-roam-dblocks--parse-predicate :foo t)
+  ;; (org-roam-dblocks--parse-predicate :foo 'ignore)
+  ;; (org-roam-dblocks--parse-predicate :foo (lambda (node) node))
+  ;; (org-roam-dblocks--parse-predicate :foo '(lambda (node) node))
+  ;; (org-roam-dblocks--parse-predicate :foo 'it)
+  ;; (org-roam-dblocks--parse-predicate :foo '(equal it 0))
+  (cl-macrolet ((lambda-with-error-handling (binding &rest body)
+                                            `(lambda ,binding
+                                               (condition-case err
+                                                   (progn ,@body)
+                                                 (error
+                                                  "Error evaluating %s form: %s" keyword (error-message-string err))))))
+    (cond
+     ((null form)
+      nil)
+     ((functionp form)
+      (lambda-with-error-handling (node)
+                                  (funcall form node)))
+     (t
+      (lambda-with-error-handling (node)
+                                  (eval form `((it . ,node))))))))
+
+(defun org-roam-dblocks--compile-filter-fns (params)
+  ;; Quick tests:
+  ;; (funcall (org-roam-dblocks--compile-filter-fns '(:filter (equal "foo" it))) "foo")
+  ;; (funcall (org-roam-dblocks--compile-filter-fns '(:filter (equal "foo" it))) "bar")
+  ;; (funcall (org-roam-dblocks--compile-filter-fns '(:remove (equal "foo" it))) "foo")
+  ;; (funcall (org-roam-dblocks--compile-filter-fns '(:remove (equal "foo" it))) "bar")
+  ;; (funcall (org-roam-dblocks--compile-filter-fns '(:filter stringp :remove stringp)) "foo")
+  ;; (funcall (org-roam-dblocks--compile-filter-fns '(:filter stringp :remove integerp)) "foo")
+  ;; (funcall (org-roam-dblocks--compile-filter-fns '(:filter stringp :remove integerp)) 0)
+  ;; (funcall (org-roam-dblocks--compile-filter-fns '(:filter integerp :remove stringp)) "foo")
+  ;; (funcall (org-roam-dblocks--compile-filter-fns '(:filter integerp :remove stringp)) 1)
+  (pcase-exhaustive
+      (cons (org-roam-dblocks--parse-predicate :filter (org-roam-dblocks-args-filter params))
+            (org-roam-dblocks--parse-predicate :remove (org-roam-dblocks-args-remove params)))
+
+    (`(nil     . nil)     (-const t))
+    (`(,filter . nil)     filter)
+    (`(nil     . ,remove) (-not remove))
+    (`(,filter . ,remove) (-andfn filter (-not remove)))))
+
 (defun org-roam-dblocks--eval-regexp-predicate (node match)
   (or (null match)
       (string-match-p match (org-roam-node-title node))))
@@ -166,11 +233,13 @@ their blocks updated automatically."
 (defun org-roam-dblocks--compiled-predicates (params)
   (-let ((tags (org-tags-filter-parse (org-roam-dblocks-args-tags params)))
          (match (org-roam-dblocks--parse-regexp-form (org-roam-dblocks-args-match params)))
+         (predicate (org-roam-dblocks--compile-filter-fns params))
          (block-id (org-roam-dblocks-args-id params)))
     (lambda (node)
       (when (and (not (equal block-id (org-roam-node-id node)))
                  (org-roam-dblocks--eval-regexp-predicate node match)
-                 (org-roam-dblocks--eval-tags-predicate node tags))
+                 (org-roam-dblocks--eval-tags-predicate node tags)
+                 (funcall predicate node))
         node))))
 
 
@@ -264,7 +333,11 @@ and old content."
   (condition-case err
       (progn
         (org-roam-dblocks-args-assert params t)
-        (cl-assert (or (org-roam-dblocks-args-match params) (org-roam-dblocks-args-tags params)) t "Must provide at least one of :tags or :match")
+        (cl-assert (or (org-roam-dblocks-args-match params)
+                       (org-roam-dblocks-args-tags params)
+                       (org-roam-dblocks-args-filter params)
+                       (org-roam-dblocks-args-remove params))
+                   t "Must provide at least one of :tags, :match, :filter or :remove")
         (-let* ((backlinks (->> (org-roam-node-list)
                                 (-keep (org-roam-dblocks--compiled-predicates params))
                                 (seq-sort 'org-roam-dblocks--node-sorting)))
