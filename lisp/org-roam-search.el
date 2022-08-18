@@ -62,6 +62,15 @@
   :group 'org-roam-search
   :type 'string)
 
+(defcustom org-roam-search-ignored-tags nil
+  "A list of tags for nodes that should never be included in search results.
+
+For instance, you might want never want to see dailies in your
+search results. If you tagged them with a tag in this list they
+would be excluded."
+  :group 'org-roam-search
+  :type '(list string))
+
 (defvar org-roam-search-buffer-name "*org-roam-search*")
 (defvar org-roam-search-tags-buffer-name "*org-roam-search-tags*")
 
@@ -161,7 +170,9 @@
                           query org-roam-directory))
     (progress-reporter-done reporter)
     (seq-filter (lambda (node)
-                  (ht-get files (org-roam-node-file node)))
+                  (and (ht-get files (org-roam-node-file node))
+                       (null (seq-intersection (org-roam-node-tags node)
+                                               org-roam-search-ignored-tags))))
                 (org-roam-node-list))))
 
 ;;;###autoload
