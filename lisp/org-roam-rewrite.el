@@ -108,7 +108,9 @@
           (save-match-data
             (looking-at org-link-any-re)
             (replace-match replacement t t)))
-        (write-region (point-min) (point-max) file)))))
+        (write-region (point-min) (point-max) file))))
+  ;; Tell org-roam that files changed behind its back.
+  (org-roam-db-sync))
 
 (defun org-roam-rewrite--update-node-title (node new-title)
   (org-id-goto (org-roam-node-id node))
