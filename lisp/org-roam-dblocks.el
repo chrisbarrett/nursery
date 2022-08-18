@@ -171,15 +171,15 @@ their blocks updated automatically."
        (rx-to-string (cons 'and args)
                      t))))))
 
-(defun org-roam-dblocks--parse-predicate (keyword form)
+(defun org-roam-dblocks--parse-filter-fn (keyword form)
   ;; Quick tests:
-  ;; (org-roam-dblocks--parse-predicate :foo nil)
-  ;; (org-roam-dblocks--parse-predicate :foo t)
-  ;; (org-roam-dblocks--parse-predicate :foo 'ignore)
-  ;; (org-roam-dblocks--parse-predicate :foo (lambda (node) node))
-  ;; (org-roam-dblocks--parse-predicate :foo '(lambda (node) node))
-  ;; (org-roam-dblocks--parse-predicate :foo 'it)
-  ;; (org-roam-dblocks--parse-predicate :foo '(equal it 0))
+  ;; (org-roam-dblocks--parse-filter-fn :foo nil)
+  ;; (org-roam-dblocks--parse-filter-fn :foo t)
+  ;; (org-roam-dblocks--parse-filter-fn :foo 'ignore)
+  ;; (org-roam-dblocks--parse-filter-fn :foo (lambda (node) node))
+  ;; (org-roam-dblocks--parse-filter-fn :foo '(lambda (node) node))
+  ;; (org-roam-dblocks--parse-filter-fn :foo 'it)
+  ;; (org-roam-dblocks--parse-filter-fn :foo '(equal it 0))
   (cl-macrolet ((lambda-with-error-handling (binding &rest body)
                                             `(lambda ,binding
                                                (condition-case err
@@ -208,8 +208,8 @@ their blocks updated automatically."
   ;; (funcall (org-roam-dblocks--compile-filter-fns '(:filter integerp :remove stringp)) "foo")
   ;; (funcall (org-roam-dblocks--compile-filter-fns '(:filter integerp :remove stringp)) 1)
   (pcase-exhaustive
-      (cons (org-roam-dblocks--parse-predicate :filter (org-roam-dblocks-args-filter params))
-            (org-roam-dblocks--parse-predicate :remove (org-roam-dblocks-args-remove params)))
+      (cons (org-roam-dblocks--parse-filter-fn :filter (org-roam-dblocks-args-filter params))
+            (org-roam-dblocks--parse-filter-fn :remove (org-roam-dblocks-args-remove params)))
 
     (`(nil     . nil)     (-const t))
     (`(,filter . nil)     filter)
