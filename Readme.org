@@ -54,6 +54,11 @@ Automatically delete empty dailies files so they don't build up forever.
 Commands for renaming nodes, rewriting links and deleting nodes with redirection
 so you can refactor notes without leaving broken links.
 
+** SPIKE [[file:lisp/timekeep.el][timekeep]] /(spike)/
+Provides a structured way to use org-roam for representing multiple
+clients/employers. It provides a simple clocking interface built on org-clock
+and provides integrations with org-capture.
+
 * Installation
 Most packages should be manually installable via =package.el=, assuming you have
 [[https://melpa.org/#/getting-started][MELPA]] set up. But honestly, you're better off just cloning this repo and putting
