@@ -4,7 +4,7 @@
 
 ;; Package-Requires: ((emacs "27.1") (dash "2.19.1") (ht "2.4"))
 
-;; Author: Chris Barrett <chris@walrus.cool>
+;; Author: Chris Barrett <chris+emacs@walrus.cool>
 
 ;; Homepage: https://github.com/chrisbarrett/nursery
 
