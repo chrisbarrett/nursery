@@ -185,7 +185,9 @@ their blocks updated automatically."
                                                (condition-case err
                                                    (progn ,@body)
                                                  (error
-                                                  "Error evaluating %s form: %s" keyword (error-message-string err))))))
+                                                  (error "Error evaluating %s form: %s"
+                                                         keyword
+                                                         (error-message-string err)))))))
     (cond
      ((null form)
       nil)
