@@ -348,6 +348,14 @@ and old content."
 ;;;###autoload
 (defalias 'org-dblock-write:notes #'org-roam-dblocks--write-content)
 
+(defun org-roam-dblocks--read-tags-filter-for-dblock-args ()
+  (let* ((tags-filter (org-tags-filter-read))
+         (unpacked (append (seq-map (lambda (it) (concat "-" it)) (org-tags-filter-forbidden tags-filter))
+                           (org-tags-filter-required tags-filter))))
+    (if (equal 1 (length unpacked))
+        (car unpacked)
+      unpacked)))
+
 ;;;###autoload
 (defun org-insert-dblock:notes ()
   "Insert a dynamic block org-roam notes at point."
@@ -356,7 +364,7 @@ and old content."
                 ("Title Regexp Match"
                  (list :match (read-string "Match title (regexp): ")))
                 ("Tags Filter"
-                 (list :tags (format "(%s)" (org-tags-filter-pp  (org-tags-filter-read))))))))
+                 (list :tags (org-roam-dblocks--read-tags-filter-for-dblock-args))))))
     (atomic-change-group
       (org-create-dblock (append '(:name "notes") args))))
   (org-update-dblock))
