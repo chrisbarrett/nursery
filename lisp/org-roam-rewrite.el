@@ -55,6 +55,13 @@
   :group 'org-roam-rewrite
   :type 'boolean)
 
+(defcustom org-roam-rewrite-node-extracted-hook nil
+  "Hook run after a node has been extracted successfully to a new file.
+
+It is called with the new node as the current buffer."
+  :group 'org-roam-rewrite
+  :type 'hook)
+
 
 
 (defun org-roam-rewrite--set-title-keyword (text)
@@ -298,7 +305,8 @@ handles file titles, tags and transclusions better."
                                            org-roam-rewrite-extract-excluded-tags)))
               (org-roam-rewrite--set-file-tags tags)
               (org-roam-rewrite--apply-when-transclusions-enabled 'org-transclusion-add-all))
-            (save-buffer)))))))
+            (save-buffer)
+            (run-hooks 'org-roam-rewrite-node-extracted-hook)))))))
 
 (provide 'org-roam-rewrite)
 
