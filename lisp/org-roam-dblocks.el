@@ -99,8 +99,17 @@
 ;;
 ;;      Examples:
 ;;      - my-predicate
-;;      - (lambda (node) (equal 0 (org-roam-node-depth node)))
-;;      - (equal 0 (org-roam-node-depth it))
+;;      - (lambda (node) (zerop (org-roam-node-level node)))
+;;      - (zerop (org-roam-node-level it))
+;;
+;;      For convenience, the slots on an org-roam node are bound within an
+;;      anaphoric predicate. This allows you to rewrite:
+;;
+;;        (zerop (org-roam-node-level it))
+;;
+;;      As the more convenient:
+;;
+;;        (zerop level)
 ;;
 ;;      If :filter and :remove are both provided, they are logically and-ed.
 
@@ -171,6 +180,22 @@ their blocks updated automatically."
        (rx-to-string (cons 'and args)
                      t))))))
 
+(defconst org-roam-dblocks--node-slot-symbols
+  '(file file-title file-hash file-atime file-mtime
+         id level point todo priority scheduled deadline title properties olp
+         tags aliases refs)
+  "A list of slots names on org-roam-nodes.
+
+This list is used to create lexical bindings in anaphoric
+predicates.")
+
+(defun org-roam-dblocks--bindings-for-lexical-scope (node)
+  (cons `(it . ,node)
+        (seq-map (lambda (sym)
+                   (let ((slot-accessor (intern (format "org-roam-node-%s" sym))))
+                     (cons sym (funcall slot-accessor node))))
+                 org-roam-dblocks--node-slot-symbols)))
+
 (defun org-roam-dblocks--parse-filter-fn (keyword form)
   ;; Quick tests:
   ;; (org-roam-dblocks--parse-filter-fn :foo nil)
@@ -196,7 +221,7 @@ their blocks updated automatically."
                                   (funcall form node)))
      (t
       (lambda-with-error-handling (node)
-                                  (eval form `((it . ,node))))))))
+                                  (eval form (org-roam-dblocks--bindings-for-lexical-scope node)))))))
 
 (defun org-roam-dblocks--compile-filter-fns (params)
   ;; Quick tests:
