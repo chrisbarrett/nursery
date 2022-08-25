@@ -286,27 +286,42 @@ handles file titles, tags and transclusions better."
                        org-roam-directory)))
       (let ((tags (org-get-tags))
             (title (org-get-heading))
-            (id (org-id-get-create)))
-        (atomic-change-group
-          (save-restriction
-            (org-narrow-to-subtree)
-            (org-roam-rewrite--apply-when-transclusions-enabled 'org-transclusion-remove-all t))
-          (org-cut-subtree)
-          (when org-roam-rewrite-insert-link-after-extraction-p
-            (insert (org-link-make-string (format "id:%s" id) (org-link-display-format title)))
-            (newline))
-          (save-buffer)
-          (with-current-buffer (find-file-noselect file-path)
-            (org-paste-subtree)
-            (while (> (org-current-level) 1) (org-promote-subtree))
-            (save-buffer)
-            (org-roam-promote-entire-buffer)
-            (when-let* ((tags (-difference (-union (org-roam-rewrite--file-tags) tags)
-                                           org-roam-rewrite-extract-excluded-tags)))
-              (org-roam-rewrite--set-file-tags tags)
-              (org-roam-rewrite--apply-when-transclusions-enabled 'org-transclusion-add-all))
-            (save-buffer)
-            (run-hooks 'org-roam-rewrite-node-extracted-hook)))))))
+            (id (org-id-get-create))
+            (dest-buf (find-file-noselect file-path))
+            extraction-succeeded-p)
+        (unwind-protect
+            (atomic-change-group
+              (save-restriction
+                (org-narrow-to-subtree)
+                (org-roam-rewrite--apply-when-transclusions-enabled 'org-transclusion-remove-all t))
+              (org-cut-subtree)
+              (save-buffer)
+              (org-roam-db-update-file)
+              (when org-roam-rewrite-insert-link-after-extraction-p
+                (insert (org-link-make-string (format "id:%s" id) (org-link-display-format title)))
+                (newline))
+              (with-current-buffer dest-buf
+                (org-paste-subtree)
+                (while (> (org-current-level) 1) (org-promote-subtree))
+                (save-buffer)
+                (org-roam-promote-entire-buffer)
+                (when-let* ((tags (-difference (-union (org-roam-rewrite--file-tags) tags)
+                                               org-roam-rewrite-extract-excluded-tags)))
+                  (org-roam-rewrite--set-file-tags tags)
+                  (org-roam-rewrite--apply-when-transclusions-enabled 'org-transclusion-add-all)))
+              (setq extraction-succeeded-p t))
+          (with-current-buffer dest-buf
+            (if extraction-succeeded-p
+                (save-buffer)
+              (let ((kill-buffer-query-functions))
+                (set-buffer-modified-p nil)
+                (kill-buffer dest-buf)
+                (when (file-exists-p file-path)
+                  (delete-file file-path))))))
+
+        (save-buffer)
+        (with-current-buffer dest-buf
+          (run-hooks 'org-roam-node-capture-new-node-hook 'org-roam-rewrite-node-extracted-hook))))))
 
 (provide 'org-roam-rewrite)
 
