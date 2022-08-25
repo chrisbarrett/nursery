@@ -221,7 +221,7 @@ predicates.")
   ;; (org-roam-dblocks--parse-filter-fn :foo '(equal it 0))
   (cl-macrolet ((lambda-with-error-handling (binding &rest body)
                                             `(lambda ,binding
-                                               (condition-case err
+                                               (condition-case-unless-debug err
                                                    (progn ,@body)
                                                  (error
                                                   (error "Error evaluating %s form: %s"
@@ -341,7 +341,7 @@ and old content."
 ;;; Backlinks dblock type
 
 (defun org-roam-dblocks-format-backlinks (params)
-  (condition-case err
+  (condition-case-unless-debug err
       (progn
         (org-roam-dblocks-args-assert params t)
         (-let* ((id (org-roam-dblocks-args-id params))
@@ -371,7 +371,7 @@ and old content."
 ;;; Roam notes search dblock type
 
 (defun org-roam-dblocks-format-notes (params)
-  (condition-case err
+  (condition-case-unless-debug err
       (progn
         (org-roam-dblocks-args-assert params t)
         (cl-assert (or (org-roam-dblocks-args-match params)
