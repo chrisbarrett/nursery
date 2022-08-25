@@ -618,6 +618,11 @@ them as reviewed with `org-roam-review-accept',
           (found))
       (while (not stop)
         (magit-section-forward-sibling)
+        ;; Skip over group headlines
+        (magit-section-case
+          (org-roam-review-grouping-section
+           (magit-section-forward)))
+
         (setq found (not (equal 'font-lock-comment-face (get-text-property (point) 'face))))
         (let ((unchanged (equal (magit-current-section) section)))
           (setq stop (or found unchanged))))
