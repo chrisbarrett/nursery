@@ -159,6 +159,16 @@ their blocks updated automatically."
 
 
 
+(plisty-define org-roam-dblocks-link
+  :required (:id :desc))
+
+(defun org-roam-dblocks--link-to-list-item (link)
+  (concat "- " (org-link-make-string (concat "id:" (org-roam-dblocks-link-id link))
+                                     (org-roam-dblocks-link-desc link))))
+
+(defalias 'org-roam-dblocks--link-sorting
+  (-on #'string-lessp (-compose #'downcase #'org-roam-dblocks-link-desc)))
+
 (plisty-define org-roam-dblocks-args
   :optional (:id :match :tags
              :name :indentation-column :content
@@ -168,12 +178,11 @@ their blocks updated automatically."
   (let ((regexp-parser (when-let* ((matcher (org-roam-dblocks-args-match params)))
                          (org-roam-dblocks--parse-regexp-form matcher))))
     (lambda (node)
-      (let* ((link (concat "id:" (org-roam-node-id node)))
-             (title (org-roam-node-title node))
-             (desc (or (when regexp-parser
-                         (cadr (s-match regexp-parser title)))
-                       title)))
-        (concat "- " (org-link-make-string link desc))))))
+      (let ((title (org-roam-node-title node)))
+        (org-roam-dblocks-link-create :id (org-roam-node-id node)
+                                      :desc (or (when regexp-parser
+                                                  (cadr (s-match regexp-parser title)))
+                                                title))))))
 
 (defun org-roam-dblocks--parse-regexp-form (form)
   ;;; Quick tests:
@@ -268,9 +277,6 @@ predicates.")
     (not (or (seq-intersection tags forbidden-tags)
              (seq-difference required-tags tags)))))
 
-(defalias 'org-roam-dblocks--node-sorting
-  (-on #'string-lessp (-compose #'downcase #'org-roam-node-title)))
-
 (defun org-roam-dblocks--compiled-predicates (params)
   (-let ((tags (org-tags-filter-parse (org-roam-dblocks-args-tags params)))
          (match (org-roam-dblocks--parse-regexp-form (org-roam-dblocks-args-match params)))
@@ -346,11 +352,11 @@ and old content."
         (org-roam-dblocks-args-assert params t)
         (-let* ((id (org-roam-dblocks-args-id params))
                 (node (if id (org-roam-node-from-id id) (org-roam-node-at-point t)))
-                (backlinks (->>
-                            (org-roam-backlinks-get node :unique t)
+                (lines (->> (org-roam-backlinks-get node :unique t)
                             (-keep (-compose (org-roam-dblocks--compiled-predicates params) #'org-roam-backlink-source-node))
-                            (seq-sort 'org-roam-dblocks--node-sorting)))
-                (lines (seq-map (org-roam-dblocks--make-link-formatter params) backlinks)))
+                            (seq-map (org-roam-dblocks--make-link-formatter params))
+                            (seq-sort 'org-roam-dblocks--link-sorting)
+                            (seq-map #'org-roam-dblocks--link-to-list-item))))
           (string-join lines  "\n")))
     (error (error-message-string err))))
 
@@ -379,11 +385,12 @@ and old content."
                        (org-roam-dblocks-args-filter params)
                        (org-roam-dblocks-args-remove params))
                    t "Must provide at least one of :tags, :match, :filter or :remove")
-        (-let* ((backlinks (->> (org-roam-node-list)
-                                (-keep (org-roam-dblocks--compiled-predicates params))
-                                (seq-sort 'org-roam-dblocks--node-sorting)))
-                (lines (seq-map (org-roam-dblocks--make-link-formatter params) backlinks)))
-          (string-join lines  "\n")))
+        (let ((lines (->> (org-roam-node-list)
+                          (-keep (org-roam-dblocks--compiled-predicates params))
+                          (seq-map (org-roam-dblocks--make-link-formatter params))
+                          (seq-sort #'org-roam-dblocks--link-sorting)
+                          (seq-map #'org-roam-dblocks--link-to-list-item))))
+          (string-join lines "\n")))
     (error (error-message-string err))))
 
 ;;;###autoload
