@@ -71,6 +71,13 @@
 ;;     - "foo bar", (rx "foo bar")
 ;;     - "[?]$", (rx "?" eol)
 ;;
+;;     If the match contains a capture group, the text in that group is used for
+;;     the link description. E.g., to extract the text after "Prefix - ", you'd
+;;     write one of:
+
+;;     - :match "^Prefix - \\(.+\\)"
+;;     - :match (rx bol "Prefix - " (group (+ nonl)))
+;;
 ;; - :tags, which matches the note's headline and file tags.
 ;;
 ;;     A tags filter must be a single tag (double-quotes optional) or a list of
@@ -128,6 +135,7 @@
 (require 'dash)
 (require 'org-tags-filter)
 (require 'plisty)
+(require 's)
 
 (cl-eval-when (compile)
   (require 'org)
@@ -156,10 +164,16 @@ their blocks updated automatically."
              :name :indentation-column :content
              :filter :remove))
 
-(defun org-roam-dblocks--node-to-link (node)
-  (let ((link (concat "id:" (org-roam-node-id node)))
-        (desc (org-roam-node-title node)))
-    (concat "- " (org-link-make-string link desc))))
+(defun org-roam-dblocks--make-link-formatter (params)
+  (let ((regexp-parser (when-let* ((matcher (org-roam-dblocks-args-match params)))
+                         (org-roam-dblocks--parse-regexp-form matcher))))
+    (lambda (node)
+      (let* ((link (concat "id:" (org-roam-node-id node)))
+             (title (org-roam-node-title node))
+             (desc (or (when regexp-parser
+                         (cadr (s-match regexp-parser title)))
+                       title)))
+        (concat "- " (org-link-make-string link desc))))))
 
 (defun org-roam-dblocks--parse-regexp-form (form)
   ;;; Quick tests:
@@ -336,7 +350,7 @@ and old content."
                             (org-roam-backlinks-get node :unique t)
                             (-keep (-compose (org-roam-dblocks--compiled-predicates params) #'org-roam-backlink-source-node))
                             (seq-sort 'org-roam-dblocks--node-sorting)))
-                (lines (seq-map 'org-roam-dblocks--node-to-link backlinks)))
+                (lines (seq-map (org-roam-dblocks--make-link-formatter params) backlinks)))
           (string-join lines  "\n")))
     (error (error-message-string err))))
 
@@ -368,7 +382,7 @@ and old content."
         (-let* ((backlinks (->> (org-roam-node-list)
                                 (-keep (org-roam-dblocks--compiled-predicates params))
                                 (seq-sort 'org-roam-dblocks--node-sorting)))
-                (lines (seq-map 'org-roam-dblocks--node-to-link backlinks)))
+                (lines (seq-map (org-roam-dblocks--make-link-formatter params) backlinks)))
           (string-join lines  "\n")))
     (error (error-message-string err))))
 
