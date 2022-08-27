@@ -140,8 +140,7 @@ NODE is the node to update.
 
 NEW-TITLE is the new title to use. All backlinks will have their
 descriptions updated to this value."
-  (interactive (let* ((suggested-title (-some->> (org-roam-node-at-point) (org-roam-node-title)))
-                      (node (org-roam-node-read suggested-title nil nil t "Rename: ")))
+  (interactive (let ((node (or (org-roam-node-at-point) (org-roam-node-read))))
                  (list node (read-string "New title: " (org-roam-node-title node)))))
   (org-roam-node-visit node)
   (org-save-all-org-buffers)
