@@ -329,9 +329,9 @@ When called with a `C-u' prefix arg, clear the current filter."
   (replace-regexp-in-string (rx bol) (make-string (* depth org-roam-review-indent-width) 32)
                             str))
 
-(cl-defun org-roam-review-insert-preview (node &key (depth 0))
+(cl-defun org-roam-review-insert-preview (node &key point (depth 0))
   (magit-insert-section section (org-roam-preview-section)
-    (let* ((start (org-roam-node-point node))
+    (let* ((start (or point (org-roam-node-point node)))
            (file (org-roam-node-file node))
            (preview (org-roam-fontify-like-in-org-mode (org-roam-preview-get-contents file start)))
            (post-formatters
