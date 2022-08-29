@@ -59,6 +59,9 @@ Provides a structured way to use org-roam for representing multiple
 clients/employers. It provides a simple clocking interface built on org-clock
 and provides integrations with org-capture.
 
+** SPIKE [[file:lisp/org-roam-refill-previews.el][org-roam-refill-previews]] /(spike)/
+Refill previews in the backlinks buffer so they fit the window.
+
 * Installation
 Most packages should be manually installable via =package.el=, assuming you have
 [[https://melpa.org/#/getting-started][MELPA]] set up. But honestly, you're better off just cloning this repo and putting
