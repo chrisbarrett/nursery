@@ -51,6 +51,8 @@ Only applies to level-1 headings in the document."
   :group 'org-format
   :type 'integer)
 
+
+
 (defun org-format--ensure-empty-lines (n)
   (save-excursion
     (goto-char (line-beginning-position))
@@ -62,10 +64,21 @@ Only applies to level-1 headings in the document."
           (delete-region (point) start)))
       (insert (make-string n ?\n)))))
 
+(defun org-format--in-archived-heading-p ()
+  (save-excursion
+    (when (org-before-first-heading-p)
+      (org-forward-heading-same-level 1))
+    (let ((tags (org-get-tags)))
+      (seq-contains-p tags org-archive-tag))))
+
 (defun org-format-all-headings ()
   "Ensure that blank lines exist between headings and their contents."
   (interactive)
-  (let ((scope (if (equal (buffer-name) "archive.org") 'tree 'file))
+  (let ((scope (if (org-format--in-archived-heading-p)
+                   ;; archive files can be enormous--just format the heading at
+                   ;; point after archiving.
+                   'tree
+                 'file))
         (seen-first-heading-p))
     (org-map-entries (lambda ()
                        ;; Widen so we can see space preceding the current
