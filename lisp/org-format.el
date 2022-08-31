@@ -4,6 +4,11 @@
 
 ;; Adapted from: https://emacs.stackexchange.com/a/28268
 
+;; Example configuration:
+;;
+;;   (use-package org-format
+;;     :hook (org-mode . org-format-on-save-mode))
+
 ;;; Code:
 
 (require 'org)
