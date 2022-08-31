@@ -66,6 +66,9 @@ Refill previews in the backlinks buffer so they fit the window.
 Compute previews lazily for much better performance in buffers with many
 backlinks or reflinks.
 
+** SPIKE [[file:lisp/org-format.el][org-format]] (/spike/)
+Formatter for org-mode files to ensure consistency.
+
 * Installation
 Most packages should be manually installable via =package.el=, assuming you have
 [[https://melpa.org/#/getting-started][MELPA]] set up. But honestly, you're better off just cloning this repo and putting
