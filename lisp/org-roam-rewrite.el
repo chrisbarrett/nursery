@@ -181,8 +181,11 @@ LINK-DESC is the description to use for the updated links."
      ((null backlinks)
       (when (y-or-n-p "No links found. Delete note? ")
         (org-roam-rewrite--delete-node-and-buffer from)))
-     ((y-or-n-p (format "Rewriting %s link(s) from \"%s\" -> \"%s\". Continue? "
-                        (length backlinks) (org-roam-node-title from) link-desc))
+     ((y-or-n-p (format "Rewriting %s link%s from \"%s\" -> \"%s\". Continue? "
+                        (length backlinks)
+                        (if (= 1 (length backlinks)) "" "s")
+                        (org-roam-node-title from)
+                        link-desc))
       (org-roam-rewrite--edit-backlinks backlinks (org-roam-node-id to) link-desc)
       (when (y-or-n-p "Rewrite completed. Delete note? ")
         (org-roam-rewrite--delete-node-and-buffer from)))
