@@ -150,14 +150,16 @@ descriptions updated to this value."
     (cond
      ((null backlinks)
       (org-roam-rewrite--update-node-title node new-title)
-      (message "No backlinks found."))
-     ((y-or-n-p (format "Rewriting %s link(s) from \"%s\" -> \"%s\". Continue? "
-                        (length backlinks) (org-roam-node-title node) new-title))
-      (org-roam-rewrite--update-node-title node new-title)
-      (org-roam-rewrite--edit-backlinks backlinks (org-roam-node-id node) new-title)
-      (message "Rewrote %s links to note." (length backlinks)))
+      (message "Renamed. No backlinks to update."))
      (t
-      (user-error "Rewrite aborted")))))
+      (org-roam-rewrite--update-node-title node new-title)
+      (cond ((y-or-n-p (format "Modify %s backlink description%s? "
+                               (length backlinks)
+                               (if (= 1 (length backlinks)) "" "s")))
+             (org-roam-rewrite--edit-backlinks backlinks (org-roam-node-id node) new-title)
+             (message "Rewrote %s links to note." (length backlinks)))
+            (t
+             (message "Rename completed.")))))))
 
 ;;;###autoload
 (defun org-roam-rewrite-remove (from to link-desc)
