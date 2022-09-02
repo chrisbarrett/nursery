@@ -113,8 +113,10 @@ It is called with the new node as the current buffer."
         (dolist (backlink (seq-sort-by #'org-roam-backlink-point #'> backlinks))
           (goto-char (org-roam-backlink-point backlink))
           (save-match-data
-            (looking-at org-link-any-re)
-            (replace-match replacement t t)))
+            (when (org-at-property-drawer-p)
+              (error "Unexpected attempt to edit property drawer"))
+            (when (looking-at org-link-any-re)
+              (replace-match replacement t t))))
         (write-region (point-min) (point-max) file))))
   ;; Tell org-roam that files changed behind its back.
   (org-roam-db-sync))
