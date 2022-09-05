@@ -130,9 +130,25 @@ It is called with the new node as the current buffer."
   (save-buffer))
 
 (defun org-roam-rewrite--delete-node-kill-buffer (node)
-  (when-let* ((buf (find-buffer-visiting (org-roam-node-file node))))
-    (kill-buffer buf))
-  (delete-file (org-roam-node-file node)))
+  (cond
+   ((zerop (org-roam-node-level node))
+    (when-let* ((buf (find-buffer-visiting (org-roam-node-file node))))
+      (kill-buffer buf))
+    (delete-file (org-roam-node-file node)))
+   (t
+    (let ((buffer-visiting-p (find-buffer-visiting (org-roam-node-file node))))
+      (org-with-point-at (org-roam-node-marker node)
+        (goto-char (point-min))
+        (when (search-forward-regexp (rx-to-string `(and
+                                                     bol
+                                                     (* space) ":ID:"
+                                                     (* space)
+                                                     ,(org-roam-node-id node))))
+          (let ((message-log-max))
+            (org-cut-subtree)))
+        (save-buffer)
+        (unless buffer-visiting-p
+          (kill-buffer)))))))
 
 ;;;###autoload
 (defun org-roam-rewrite-rename (node new-title)
