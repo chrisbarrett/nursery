@@ -129,7 +129,7 @@ It is called with the new node as the current buffer."
          (replace-match new-title t t nil 4)))
   (save-buffer))
 
-(defun org-roam-rewrite--delete-node-and-buffer (node)
+(defun org-roam-rewrite--delete-node-kill-buffer (node)
   (when-let* ((buf (find-buffer-visiting (org-roam-node-file node))))
     (kill-buffer buf))
   (delete-file (org-roam-node-file node)))
@@ -182,7 +182,7 @@ LINK-DESC is the description to use for the updated links."
     (cond
      ((null backlinks)
       (when (y-or-n-p "No links found. Delete node? ")
-        (org-roam-rewrite--delete-node-and-buffer from)))
+        (org-roam-rewrite--delete-node-kill-buffer from)))
      ((y-or-n-p (format "Rewriting %s link%s from \"%s\" -> \"%s\". Continue? "
                         (length backlinks)
                         (if (= 1 (length backlinks)) "" "s")
@@ -190,7 +190,7 @@ LINK-DESC is the description to use for the updated links."
                         link-desc))
       (org-roam-rewrite--edit-backlinks backlinks (org-roam-node-id to) link-desc)
       (when (y-or-n-p "Rewrite completed. Delete node? ")
-        (org-roam-rewrite--delete-node-and-buffer from)))
+        (org-roam-rewrite--delete-node-kill-buffer from)))
      (t
       (user-error "Rewrite aborted")))))
 
