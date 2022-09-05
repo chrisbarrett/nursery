@@ -41,7 +41,7 @@
   :prefix "org-roam-rewrite-")
 
 (defcustom org-roam-rewrite-extract-excluded-tags '("ATTACH")
-  "Tags that should not be propagated when extracting notes."
+  "Tags that should not be propagated when extracting nodes."
   :group 'org-roam-rewrite
   :type '(repeat string))
 
@@ -136,7 +136,7 @@ It is called with the new node as the current buffer."
 
 ;;;###autoload
 (defun org-roam-rewrite-rename (node new-title)
-  "Change the title of a note and update links to match.
+  "Change the title of a node and update links to match.
 
 NODE is the node to update.
 
@@ -157,7 +157,7 @@ descriptions updated to this value."
                                (length backlinks)
                                (if (= 1 (length backlinks)) "" "s")))
              (org-roam-rewrite--edit-backlinks backlinks (org-roam-node-id node) new-title)
-             (message "Rewrote %s links to note." (length backlinks)))
+             (message "Rewrote %s links to node." (length backlinks)))
             (t
              (message "Rename completed.")))))))
 
@@ -181,7 +181,7 @@ LINK-DESC is the description to use for the updated links."
   (let ((backlinks (org-roam-backlinks-get from)))
     (cond
      ((null backlinks)
-      (when (y-or-n-p "No links found. Delete note? ")
+      (when (y-or-n-p "No links found. Delete node? ")
         (org-roam-rewrite--delete-node-and-buffer from)))
      ((y-or-n-p (format "Rewriting %s link%s from \"%s\" -> \"%s\". Continue? "
                         (length backlinks)
@@ -189,7 +189,7 @@ LINK-DESC is the description to use for the updated links."
                         (org-roam-node-title from)
                         link-desc))
       (org-roam-rewrite--edit-backlinks backlinks (org-roam-node-id to) link-desc)
-      (when (y-or-n-p "Rewrite completed. Delete note? ")
+      (when (y-or-n-p "Rewrite completed. Delete node? ")
         (org-roam-rewrite--delete-node-and-buffer from)))
      (t
       (user-error "Rewrite aborted")))))
@@ -200,7 +200,7 @@ LINK-DESC is the description to use for the updated links."
 
 ;;;###autoload
 (defun org-roam-rewrite-inline (src-node dest-node)
-  "Inline the contents of one org-roam note into another, removing the original.
+  "Inline the contents of one org-roam node into another, removing the original.
 
 SRC-NODE is the node to be removed.
 
@@ -248,7 +248,7 @@ DEST-NODE is the node that will be added to."
       (kill-buffer src-buffer)))
 
   (org-roam-node-visit dest-node)
-  (message "Inlined note successfully"))
+  (message "Inlined node successfully"))
 
 ;;;###autoload
 (defun org-roam-rewrite-extract ()
