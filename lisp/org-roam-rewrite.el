@@ -122,7 +122,13 @@ It is called with the new node as the current buffer."
 
             (when (looking-at org-link-any-re)
               (replace-match replacement t t))))
-        (write-region (point-min) (point-max) file))))
+        (write-region (point-min) (point-max) file)))
+
+    (pcase-dolist (`(,file . ,_) backlinks-by-file)
+      (when-let* ((buf (find-buffer-visiting file)))
+        (with-current-buffer buf
+          (revert-buffer t t)))))
+
   ;; Tell org-roam that files changed behind its back.
   (org-roam-db-sync))
 
