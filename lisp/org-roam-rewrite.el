@@ -35,6 +35,8 @@
 (require 'org)
 (require 'org-roam)
 
+(require 'org-transclusion nil t)
+
 (defgroup org-roam-rewrite nil
   "Commands for rewriting org-roam nodes and their links."
   :group 'productivity
@@ -210,9 +212,10 @@ LINK-DESC is the description to use for the updated links."
      (t
       (user-error "Rewrite aborted")))))
 
-(defun org-roam-rewrite--apply-when-transclusions-enabled (fname &rest args)
-  (when (bound-and-true-p org-transclusion-mode)
-    (apply fname args)))
+(defmacro org-roam-rewrite--when-transclusions (&rest body)
+  (declare (indent 0))
+  `(when (bound-and-true-p org-transclusion-mode)
+     ,@body))
 
 ;;;###autoload
 (defun org-roam-rewrite-inline (src-node dest-node)
@@ -237,13 +240,15 @@ DEST-NODE is the node that will be added to."
          (content
           (with-current-buffer src-buffer
             (org-with-wide-buffer
-             (org-roam-rewrite--apply-when-transclusions-enabled 'org-transclusion-remove-all)
+             (org-roam-rewrite--when-transclusions
+               (org-transclusion-remove-all))
              (goto-char (point-min))
              (org-roam-end-of-meta-data t)
              (buffer-substring (point) (point-max))))))
     (find-file (org-roam-node-file dest-node))
     (org-with-wide-buffer
-     (org-roam-rewrite--apply-when-transclusions-enabled 'org-transclusion-remove-all)
+     (org-roam-rewrite--when-transclusions
+       (org-transclusion-remove-all))
      (goto-char (point-max))
      (delete-blank-lines)
      (insert "\n\n")
@@ -255,11 +260,14 @@ DEST-NODE is the node that will be added to."
        (org-map-entries 'org-do-demote)
        (goto-char (point-min))
        (while (search-forward-regexp (rx bol "#+transclude:") nil t)
-         (org-roam-rewrite--apply-when-transclusions-enabled 'org-transclusion-add)
-         (org-roam-rewrite--apply-when-transclusions-enabled 'org-transclusion-promote-subtree))))
+         (org-roam-rewrite--when-transclusions
+           (org-transclusion-add))
+         (org-roam-rewrite--when-transclusions
+           (org-transclusion-promote-subtree)))))
     (delete-file (org-roam-node-file src-node))
     (save-buffer)
-    (org-roam-rewrite--apply-when-transclusions-enabled 'org-transclusion-add-all)
+    (org-roam-rewrite--when-transclusions
+      (org-transclusion-add-all))
     (when (buffer-live-p src-buffer)
       (kill-buffer src-buffer)))
 
@@ -271,9 +279,8 @@ DEST-NODE is the node that will be added to."
     (org-back-to-heading-or-point-min t)
     (when (bobp) (user-error "Already a top-level node"))
     (org-id-get-create)
-    (when (buffer-modified-p)
-      (save-buffer)
-      (org-roam-db-update-file))
+    (save-buffer)
+    (org-roam-db-update-file)
     (org-roam-node-at-point t)))
 
 (defun org-roam-rewrite--new-filename-from-capture-template (node)
@@ -316,55 +323,60 @@ but it handles file titles, tags and transclusions better."
                              org-roam-directory)))
                  (list node dest)))
 
-  (cl-assert (not (zerop (org-roam-node-level node))))
+  (cl-assert (org-roam-node-level node) t)
+  (cl-assert (not (zerop (org-roam-node-level node))) t)
 
-  ;; Ensure the node's buffer is open
-  (let ((file (org-roam-node-file node)))
-    (unless (find-buffer-visiting file)
-      (find-file-noselect file)))
+  (with-current-buffer (find-file-noselect (org-roam-node-file node))
+    (org-roam-rewrite--when-transclusions
+      (org-transclusion-remove-all))
 
-  (org-with-point-at (org-roam-node-marker node)
-    (let ((tags (org-get-tags))
-          (dest-buf (find-file-noselect dest))
-          extraction-succeeded-p)
-      (unwind-protect
-          (atomic-change-group
-            ;; Extract from source buffer
-            (org-roam-rewrite--apply-when-transclusions-enabled 'org-transclusion-remove-all t)
-            (org-cut-subtree)
-            (save-buffer)
-            (org-roam-db-update-file)
-            (when org-roam-rewrite-insert-link-after-extraction-p
-              (insert (org-link-make-string (format "id:%s" (org-roam-node-id node))
-                                            (org-link-display-format (org-roam-node-title node))))
-              (newline))
-            (org-roam-rewrite--apply-when-transclusions-enabled 'org-transclusion-add-all t)
-            ;; Insert into dest buffer
+    ;; Use underlying org-mode machinery to go to the ID in the buffer. We can't
+    ;; use org-roam-node-marker because updates aren't reliable.
+    (org-with-point-at (org-id-find (org-roam-node-id node) t)
+      (let ((tags (org-get-tags))
+            (save-silently t)
+            (dest-buf (find-file-noselect dest))
+            extraction-succeeded-p)
+        (unwind-protect
+            (atomic-change-group
+              ;; Extract from source buffer
+              (org-cut-subtree)
+              (save-buffer)
+              (org-roam-db-update-file)
+              (when org-roam-rewrite-insert-link-after-extraction-p
+                (insert (org-link-make-string (format "id:%s" (org-roam-node-id node))
+                                              (org-link-display-format (org-roam-node-title node))))
+                (newline))
+              (org-roam-rewrite--when-transclusions
+                (org-transclusion-add-all))
+
+              ;; Insert into dest buffer
+              (with-current-buffer dest-buf
+                (org-paste-subtree)
+                (while (> (org-current-level) 1) (org-promote-subtree))
+                (save-buffer)
+                (org-roam-promote-entire-buffer)
+                (when-let* ((tags (-difference (-union (org-roam-rewrite--file-tags) tags)
+                                               org-roam-rewrite-extract-excluded-tags)))
+                  (org-roam-rewrite--set-file-tags tags)
+                  (org-roam-rewrite--when-transclusions
+                    (org-transclusion-add-all)))
+                (save-buffer))
+
+              (setq extraction-succeeded-p t))
+
+          (unless extraction-succeeded-p
+            (message "Extraction failed")
             (with-current-buffer dest-buf
-              (org-paste-subtree)
-              (while (> (org-current-level) 1) (org-promote-subtree))
-              (save-buffer)
-              (org-roam-promote-entire-buffer)
-              (when-let* ((tags (-difference (-union (org-roam-rewrite--file-tags) tags)
-                                             org-roam-rewrite-extract-excluded-tags)))
-                (org-roam-rewrite--set-file-tags tags)
-                (org-roam-rewrite--apply-when-transclusions-enabled 'org-transclusion-add-all)))
-
-            (setq extraction-succeeded-p t))
-
-        (with-current-buffer dest-buf
-          (if extraction-succeeded-p
-              (save-buffer)
-            ;; Extraction failed--clean up
-            (let ((kill-buffer-query-functions))
-              (set-buffer-modified-p nil)
-              (kill-buffer dest-buf)
+              (let ((kill-buffer-query-functions))
+                (set-buffer-modified-p nil)
+                (kill-buffer dest-buf))
               (when (file-exists-p dest)
-                (delete-file dest))))))
+                (delete-file dest)))))
 
-      (save-buffer)
-      (with-current-buffer dest-buf
-        (run-hooks 'org-roam-node-capture-new-node-hook 'org-roam-rewrite-node-extracted-hook)))))
+        (save-buffer)
+        (with-current-buffer dest-buf
+          (run-hooks 'org-roam-node-capture-new-node-hook 'org-roam-rewrite-node-extracted-hook))))))
 
 (provide 'org-roam-rewrite)
 
