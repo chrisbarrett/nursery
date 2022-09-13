@@ -115,8 +115,11 @@ It is called with the new node as the current buffer."
         (dolist (backlink (seq-sort-by #'org-roam-backlink-point #'> backlinks))
           (goto-char (org-roam-backlink-point backlink))
           (save-match-data
+            ;; This *shouldn't* happen, but I've seen it a few times and I'm not
+            ;; sure why.
             (when (org-at-property-drawer-p)
               (error "Unexpected attempt to edit property drawer"))
+
             (when (looking-at org-link-any-re)
               (replace-match replacement t t))))
         (write-region (point-min) (point-max) file))))
