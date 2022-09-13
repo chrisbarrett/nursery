@@ -280,7 +280,7 @@ handles file titles, tags and transclusions better."
     (save-buffer)
     (org-roam-db-update-file)
     (let* ((template-info nil)
-           (node (org-roam-node-at-point))
+           (node (org-roam-node-at-point t))
            (template
             (unwind-protect
                 (progn
