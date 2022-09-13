@@ -48,6 +48,7 @@
 
 (require 'async)
 (require 'dash)
+(require 'magit-diff)
 (require 'org-roam)
 (require 'org-roam-review)
 (require 'pcre2el)
@@ -73,6 +74,12 @@ would be excluded."
 
 (defvar org-roam-search-buffer-name "*org-roam-search*")
 (defvar org-roam-search-tags-buffer-name "*org-roam-search-tags*")
+
+(defface org-roam-search-highlight
+  '((t
+     (:inherit magit-diff-added-highlight)))
+  "Face for highlighted results in the search buffer."
+  :group 'org-roam-search)
 
 
 
