@@ -266,84 +266,105 @@ DEST-NODE is the node that will be added to."
   (org-roam-node-visit dest-node)
   (message "Inlined node successfully"))
 
-;;;###autoload
-(defun org-roam-rewrite-extract ()
-  "Convert current subtree at point to a node, and extract it into a new file.
-
-It's a re-implementation of `org-roam-extract-subtree', but
-handles file titles, tags and transclusions better."
-  (interactive)
+(defun org-roam-rewrite--ensure-node-for-headline-at-point ()
   (save-excursion
     (org-back-to-heading-or-point-min t)
     (when (bobp) (user-error "Already a top-level node"))
     (org-id-get-create)
-    (save-buffer)
-    (org-roam-db-update-file)
-    (let* ((template-info nil)
-           (node (org-roam-node-at-point t))
-           (template
-            (unwind-protect
-                (progn
-                  (setq org-capture-plist nil)
-                  (org-roam-format-template
-                   (string-trim (org-capture-fill-template org-roam-extract-new-file-path))
-                   (lambda (key default-val)
-                     (let ((fn (intern key))
-                           (node-fn (intern (concat "org-roam-node-" key)))
-                           (ksym (intern (concat ":" key))))
-                       (cond
-                        ((fboundp fn)
-                         (funcall fn node))
-                        ((fboundp node-fn)
-                         (funcall node-fn node))
-                        (t (let ((r (read-from-minibuffer (format "%s: " key) default-val)))
-                             (plist-put template-info ksym r)
-                             r)))))))
-              (setq org-capture-plist nil)))
-           (relpath (file-name-as-directory org-roam-directory))
-           (file-path (expand-file-name
-                       (if org-roam-rewrite-confirm-extraction-path-p
-                           (read-file-name "Extract node to: " relpath  template nil template)
-                         template)
-                       org-roam-directory)))
-      (let ((tags (org-get-tags))
-            (title (org-get-heading))
-            (id (org-id-get-create))
-            (dest-buf (find-file-noselect file-path))
-            extraction-succeeded-p)
-        (unwind-protect
-            (atomic-change-group
-              (save-restriction
-                (org-narrow-to-subtree)
-                (org-roam-rewrite--apply-when-transclusions-enabled 'org-transclusion-remove-all t))
-              (org-cut-subtree)
-              (save-buffer)
-              (org-roam-db-update-file)
-              (when org-roam-rewrite-insert-link-after-extraction-p
-                (insert (org-link-make-string (format "id:%s" id) (org-link-display-format title)))
-                (newline))
-              (with-current-buffer dest-buf
-                (org-paste-subtree)
-                (while (> (org-current-level) 1) (org-promote-subtree))
-                (save-buffer)
-                (org-roam-promote-entire-buffer)
-                (when-let* ((tags (-difference (-union (org-roam-rewrite--file-tags) tags)
-                                               org-roam-rewrite-extract-excluded-tags)))
-                  (org-roam-rewrite--set-file-tags tags)
-                  (org-roam-rewrite--apply-when-transclusions-enabled 'org-transclusion-add-all)))
-              (setq extraction-succeeded-p t))
-          (with-current-buffer dest-buf
-            (if extraction-succeeded-p
-                (save-buffer)
-              (let ((kill-buffer-query-functions))
-                (set-buffer-modified-p nil)
-                (kill-buffer dest-buf)
-                (when (file-exists-p file-path)
-                  (delete-file file-path))))))
+    (when (buffer-modified-p)
+      (save-buffer)
+      (org-roam-db-update-file))
+    (org-roam-node-at-point t)))
 
-        (save-buffer)
+(defun org-roam-rewrite--new-filename-from-capture-template (node)
+  (unwind-protect
+      (progn
+        (setq org-capture-plist nil)
+        (org-roam-format-template
+         (string-trim (org-capture-fill-template org-roam-extract-new-file-path))
+         (lambda (key default-val)
+           (let ((fn (intern key))
+                 (node-fn (intern (concat "org-roam-node-" key))))
+             (cond
+              ((fboundp fn)
+               (funcall fn node))
+              ((fboundp node-fn)
+               (funcall node-fn node))
+              (t
+               (read-from-minibuffer (format "%s: " key) default-val)))))))
+    (setq org-capture-plist nil)))
+
+;;;###autoload
+(defun org-roam-rewrite-extract (node dest)
+  "Extract NODE to a new file at DEST.
+
+Note that NODE must be a headline, not at the top-level of the
+file. If NODE is at the top-level an error is signalled.
+
+If called interactively, ensure the headline at point has an ID
+before extracting.
+
+This is a rough reimplementation of `org-roam-extract-subtree',
+but it handles file titles, tags and transclusions better."
+  (interactive (let* ((node (org-roam-rewrite--ensure-node-for-headline-at-point))
+                      (template (org-roam-rewrite--new-filename-from-capture-template node))
+                      (relpath (file-name-as-directory org-roam-directory))
+                      (dest (expand-file-name
+                             (if org-roam-rewrite-confirm-extraction-path-p
+                                 (read-file-name "Extract node to: " relpath  template nil template)
+                               template)
+                             org-roam-directory)))
+                 (list node dest)))
+
+  (cl-assert (not (zerop (org-roam-node-level node))))
+
+  ;; Ensure the node's buffer is open
+  (let ((file (org-roam-node-file node)))
+    (unless (find-buffer-visiting file)
+      (find-file-noselect file)))
+
+  (org-with-point-at (org-roam-node-marker node)
+    (let ((tags (org-get-tags))
+          (dest-buf (find-file-noselect dest))
+          extraction-succeeded-p)
+      (unwind-protect
+          (atomic-change-group
+            ;; Extract from source buffer
+            (org-roam-rewrite--apply-when-transclusions-enabled 'org-transclusion-remove-all t)
+            (org-cut-subtree)
+            (save-buffer)
+            (org-roam-db-update-file)
+            (when org-roam-rewrite-insert-link-after-extraction-p
+              (insert (org-link-make-string (format "id:%s" (org-roam-node-id node))
+                                            (org-link-display-format (org-roam-node-title node))))
+              (newline))
+            (org-roam-rewrite--apply-when-transclusions-enabled 'org-transclusion-add-all t)
+            ;; Insert into dest buffer
+            (with-current-buffer dest-buf
+              (org-paste-subtree)
+              (while (> (org-current-level) 1) (org-promote-subtree))
+              (save-buffer)
+              (org-roam-promote-entire-buffer)
+              (when-let* ((tags (-difference (-union (org-roam-rewrite--file-tags) tags)
+                                             org-roam-rewrite-extract-excluded-tags)))
+                (org-roam-rewrite--set-file-tags tags)
+                (org-roam-rewrite--apply-when-transclusions-enabled 'org-transclusion-add-all)))
+
+            (setq extraction-succeeded-p t))
+
         (with-current-buffer dest-buf
-          (run-hooks 'org-roam-node-capture-new-node-hook 'org-roam-rewrite-node-extracted-hook))))))
+          (if extraction-succeeded-p
+              (save-buffer)
+            ;; Extraction failed--clean up
+            (let ((kill-buffer-query-functions))
+              (set-buffer-modified-p nil)
+              (kill-buffer dest-buf)
+              (when (file-exists-p dest)
+                (delete-file dest))))))
+
+      (save-buffer)
+      (with-current-buffer dest-buf
+        (run-hooks 'org-roam-node-capture-new-node-hook 'org-roam-rewrite-node-extracted-hook)))))
 
 (provide 'org-roam-rewrite)
 
