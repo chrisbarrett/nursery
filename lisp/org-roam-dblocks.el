@@ -356,9 +356,12 @@ and old content."
                             (error "Dynamic block not terminated")))
              (current-content (buffer-substring-no-properties content-start content-end))
              (updated-content
-              (pcase-exhaustive name
-                ("notes" (org-roam-dblocks-format-notes params))
-                ("backlinks" (org-roam-dblocks-format-backlinks params))))
+              (condition-case-unless-debug err
+                  (pcase-exhaustive name
+                    ("notes" (org-roam-dblocks-format-notes params))
+                    ("backlinks" (org-roam-dblocks-format-backlinks params)))
+                (error
+                 (error-message-string err))))
 
              (content-changed-p (not (equal current-content
                                             updated-content)))
@@ -381,26 +384,22 @@ and old content."
 ;;; Backlinks dblock type
 
 (defun org-roam-dblocks-format-backlinks (params)
-  (condition-case-unless-debug err
-      (progn
-        (org-roam-dblocks-args-assert params t)
+  (org-roam-dblocks-args-assert params t)
 
-        (setf (plist-get params :forbidden-ids)
-              (org-roam-dblocks--compute-forbidden-ids params))
+  (setf (plist-get params :forbidden-ids)
+        (org-roam-dblocks--compute-forbidden-ids params))
 
-        (let* ((id (org-roam-dblocks-args-id params))
-               (node (if id (org-roam-node-from-id id) (org-roam-node-at-point t)))
-               (lines (->> (org-roam-backlinks-get node :unique t)
-                           (-keep (-compose (org-roam-dblocks--compiled-predicates params) #'org-roam-backlink-source-node))
-                           (seq-map (org-roam-dblocks--make-link-formatter params))
-                           (seq-sort 'org-roam-dblocks--link-sorting)
-                           (seq-map #'org-roam-dblocks--link-to-list-item))))
-          (string-join lines  "\n")))
-    (error (error-message-string err))))
+  (let* ((id (org-roam-dblocks-args-id params))
+         (node (if id (org-roam-node-from-id id) (org-roam-node-at-point t)))
+         (lines (->> (org-roam-backlinks-get node :unique t)
+                     (-keep (-compose (org-roam-dblocks--compiled-predicates params) #'org-roam-backlink-source-node))
+                     (seq-map (org-roam-dblocks--make-link-formatter params))
+                     (seq-sort 'org-roam-dblocks--link-sorting)
+                     (seq-map #'org-roam-dblocks--link-to-list-item))))
+    (string-join lines  "\n")))
 
 ;;;###autoload
 (defalias 'org-dblock-write:backlinks #'org-roam-dblocks--write-content)
-
 ;;;###autoload
 (defun org-insert-dblock:backlinks ()
   "Insert a dynamic block backlinks at point."
@@ -415,25 +414,22 @@ and old content."
 ;;; Roam notes search dblock type
 
 (defun org-roam-dblocks-format-notes (params)
-  (condition-case-unless-debug err
-      (progn
-        (org-roam-dblocks-args-assert params t)
-        (cl-assert (or (org-roam-dblocks-args-match params)
-                       (org-roam-dblocks-args-tags params)
-                       (org-roam-dblocks-args-filter params)
-                       (org-roam-dblocks-args-remove params))
-                   t "Must provide at least one of :tags, :match, :filter or :remove")
+  (org-roam-dblocks-args-assert params t)
+  (cl-assert (or (org-roam-dblocks-args-match params)
+                 (org-roam-dblocks-args-tags params)
+                 (org-roam-dblocks-args-filter params)
+                 (org-roam-dblocks-args-remove params))
+             t "Must provide at least one of :tags, :match, :filter or :remove")
 
-        (setf (plist-get params :forbidden-ids)
-              (org-roam-dblocks--compute-forbidden-ids params))
+  (setf (plist-get params :forbidden-ids)
+        (org-roam-dblocks--compute-forbidden-ids params))
 
-        (let ((lines (->> (org-roam-node-list)
-                          (-keep (org-roam-dblocks--compiled-predicates params))
-                          (seq-map (org-roam-dblocks--make-link-formatter params))
-                          (seq-sort #'org-roam-dblocks--link-sorting)
-                          (seq-map #'org-roam-dblocks--link-to-list-item))))
-          (string-join lines "\n")))
-    (error (error-message-string err))))
+  (let ((lines (->> (org-roam-node-list)
+                    (-keep (org-roam-dblocks--compiled-predicates params))
+                    (seq-map (org-roam-dblocks--make-link-formatter params))
+                    (seq-sort #'org-roam-dblocks--link-sorting)
+                    (seq-map #'org-roam-dblocks--link-to-list-item))))
+    (string-join lines "\n")))
 
 ;;;###autoload
 (defalias 'org-dblock-write:notes #'org-roam-dblocks--write-content)
