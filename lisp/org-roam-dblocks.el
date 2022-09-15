@@ -365,7 +365,7 @@ and old content."
 
              (content-changed-p (not (equal current-content
                                             updated-content)))
-             (params (append params (list :new-content (and content-changed-p updated-content)))))
+             (params (append params (list :new-content (when content-changed-p updated-content)))))
 
         ;; Only clear the block if the content should change.
         (when content-changed-p
