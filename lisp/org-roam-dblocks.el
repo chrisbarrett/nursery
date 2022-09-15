@@ -58,6 +58,14 @@
 ;;     - [[id:...][Is there research supporting the claimed benefits of the Pomodoro Technique?]]
 ;;     #+END:
 
+;; Options:
+;;
+;; - :only-missing, when non-nil, excludes links already in the node from the
+;;   block.
+;;
+;;   As a use-case, you might use this to search for nodes that haven't been
+;;   worked into the text of the current node.
+
 ;; Implemented filters:
 ;;
 ;; - :match, which matches note titles (case-insensitively).
@@ -119,6 +127,9 @@
 ;;        (zerop level)
 ;;
 ;;      If :filter and :remove are both provided, they are logically and-ed.
+;;
+;; - :forbidden-ids, a list of node IDs (strings) that should always be excluded
+;;   from results.
 
 ;; Keeping blocks up-to-date:
 ;;
@@ -170,8 +181,8 @@ their blocks updated automatically."
   (-on #'string-lessp (-compose #'downcase #'org-roam-dblocks-link-desc)))
 
 (plisty-define org-roam-dblocks-args
-  :optional (:id :match :tags
-             :name :indentation-column :content
+  :optional (:id :match :tags :only-missing
+             :name :indentation-column :content :forbidden-ids
              :filter :remove))
 
 (defun org-roam-dblocks--make-link-formatter (params)
@@ -280,14 +291,37 @@ predicates.")
 (defun org-roam-dblocks--compiled-predicates (params)
   (let ((tags (org-tags-filter-parse (org-roam-dblocks-args-tags params)))
         (match (org-roam-dblocks--parse-regexp-form (org-roam-dblocks-args-match params)))
-        (predicate (org-roam-dblocks--compile-filter-fns params))
-        (block-id (org-roam-dblocks-args-id params)))
+        (predicate (org-roam-dblocks--compile-filter-fns params)))
     (lambda (node)
-      (when (and (not (equal block-id (org-roam-node-id node)))
+      (when (and (not (seq-contains-p (org-roam-dblocks-args-forbidden-ids params)
+                                      (org-roam-node-id node)))
                  (org-roam-dblocks--eval-regexp-predicate node match)
                  (org-roam-dblocks--eval-tags-predicate node tags)
                  (funcall predicate node))
         node))))
+
+(defun org-roam-dblocks--links-not-in-dblocks (node)
+  (let ((forward-links (org-roam-db-query [:select :distinct [pos dest]
+                                           :from links
+                                           :where (and (= type "id") (= source $s1))]
+                                          (org-roam-node-id node)))
+        (not-in-block (make-hash-table :test 'equal)))
+    (with-temp-buffer
+      (insert-file-contents (org-roam-node-file node))
+      (pcase-dolist (`(,pos ,id) forward-links)
+        (goto-char pos)
+        (let ((block-args (cadr (org-element-lineage (org-element-at-point) '(dynamic-block)))))
+          (unless (or block-args
+                      (seq-contains-p org-roam-dblocks-names (plist-get block-args :block-name)))
+            (puthash id t not-in-block)))))
+    (hash-table-keys not-in-block)))
+
+(defun org-roam-dblocks--compute-forbidden-ids (params)
+  (append (list (org-roam-dblocks-args-id params))
+          (org-roam-dblocks-args-forbidden-ids params)
+          (when (org-roam-dblocks-args-only-missing params)
+            (let ((node (org-roam-node-from-id (org-roam-dblocks-args-id params))))
+              (org-roam-dblocks--links-not-in-dblocks node)))))
 
 
 ;; HACK: To avoid dirtying the buffer when blocks haven't changed, we actually
@@ -350,6 +384,10 @@ and old content."
   (condition-case-unless-debug err
       (progn
         (org-roam-dblocks-args-assert params t)
+
+        (setf (plist-get params :forbidden-ids)
+              (org-roam-dblocks--compute-forbidden-ids params))
+
         (let* ((id (org-roam-dblocks-args-id params))
                (node (if id (org-roam-node-from-id id) (org-roam-node-at-point t)))
                (lines (->> (org-roam-backlinks-get node :unique t)
@@ -385,6 +423,10 @@ and old content."
                        (org-roam-dblocks-args-filter params)
                        (org-roam-dblocks-args-remove params))
                    t "Must provide at least one of :tags, :match, :filter or :remove")
+
+        (setf (plist-get params :forbidden-ids)
+              (org-roam-dblocks--compute-forbidden-ids params))
+
         (let ((lines (->> (org-roam-node-list)
                           (-keep (org-roam-dblocks--compiled-predicates params))
                           (seq-map (org-roam-dblocks--make-link-formatter params))
