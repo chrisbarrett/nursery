@@ -400,6 +400,7 @@ and old content."
 
 ;;;###autoload
 (defalias 'org-dblock-write:backlinks #'org-roam-dblocks--write-content)
+
 ;;;###autoload
 (defun org-insert-dblock:backlinks ()
   "Insert a dynamic block backlinks at point."
