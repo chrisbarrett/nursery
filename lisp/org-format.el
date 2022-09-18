@@ -67,8 +67,9 @@ Only applies to level-1 headings in the document."
       (forward-char -1)
       (let ((start (point)))
         (when (search-backward-regexp (rx (not (any space "\n"))))
-          (forward-char 1)
-          (delete-region (point) start)))
+          (ignore-errors
+            (forward-char 1)
+            (delete-region (point) start))))
       (insert (make-string n ?\n)))))
 
 (defun org-format--in-archived-heading-p ()
