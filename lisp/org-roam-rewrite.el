@@ -215,14 +215,23 @@ TO is the node to change those references to point to.
 LINK-DESC is the description to use for the updated links."
   (interactive (let* ((suggested-title (-some->> (org-roam-node-at-point) (org-roam-node-title)))
                       (from (org-roam-node-read suggested-title nil nil t "Remove: "))
-                      (to (org-roam-node-read nil (lambda (it) (not (equal from it))) nil t "Rewrite to: ")))
-                 (list from to (read-string "Link description: " (org-roam-node-title to)))))
-  (org-save-all-org-buffers)
+                      (backlinks (progn
+                                   (org-save-all-org-buffers)
+                                   (org-roam-backlinks-get from))))
+                 (if (zerop (length backlinks))
+                     (list from nil nil)
+                   (let* ((to (org-roam-node-read nil (lambda (it) (not (equal from it))) nil t "Rewrite to: "))
+                          (desc (read-string "Link description: " (org-roam-node-title to))))
+                     (list from to desc)))))
   (let ((backlinks (org-roam-backlinks-get from)))
     (cond
      ((null backlinks)
       (when (y-or-n-p "No links found. Delete node? ")
         (org-roam-rewrite--delete-node-kill-buffer from)))
+
+     ((or (null to) (null link-desc))
+      (user-error "Must provide a node to redirect existing links to"))
+
      ((y-or-n-p (format "Rewriting %s link%s from \"%s\" -> \"%s\". Continue? "
                         (length backlinks)
                         (if (= 1 (length backlinks)) "" "s")
