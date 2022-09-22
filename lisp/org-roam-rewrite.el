@@ -64,6 +64,14 @@ It is called with the new node as the current buffer."
   :group 'org-roam-rewrite
   :type 'hook)
 
+(defcustom org-roam-rewrite-node-removed-functions nil
+  "Hook functions run after a node has been removed.
+
+It is called with a plist, containing the following attributes
+from the original node: :title, :level, :file, :id"
+  :group 'org-roam-rewrite
+  :type 'hook)
+
 
 
 (defun org-roam-rewrite--set-title-keyword (text)
@@ -141,25 +149,30 @@ It is called with the new node as the current buffer."
   (save-buffer))
 
 (defun org-roam-rewrite--delete-node-kill-buffer (node)
-  (cond
-   ((zerop (org-roam-node-level node))
-    (when-let* ((buf (find-buffer-visiting (org-roam-node-file node))))
-      (kill-buffer buf))
-    (delete-file (org-roam-node-file node)))
-   (t
-    (let ((buffer-visiting-p (find-buffer-visiting (org-roam-node-file node))))
-      (org-with-point-at (org-roam-node-marker node)
-        (goto-char (point-min))
-        (when (search-forward-regexp (rx-to-string `(and
-                                                     bol
-                                                     (* space) ":ID:"
-                                                     (* space)
-                                                     ,(org-roam-node-id node))))
-          (let ((message-log-max))
-            (org-cut-subtree)))
-        (save-buffer)
-        (unless buffer-visiting-p
-          (kill-buffer)))))))
+  (let ((level (org-roam-node-level node))
+        (file (org-roam-node-file node))
+        (id (org-roam-node-id node)))
+    (cond
+     ((zerop level)
+      (when-let* ((buf (find-buffer-visiting file)))
+        (kill-buffer buf))
+      (delete-file file))
+     (t
+      (let ((buffer-visiting-p (find-buffer-visiting file)))
+        (org-with-point-at (org-roam-node-marker node)
+          (goto-char (point-min))
+          (when (search-forward-regexp (rx-to-string `(and
+                                                       bol
+                                                       (* space) ":ID:"
+                                                       (* space)
+                                                       ,id)))
+            (let ((message-log-max))
+              (org-cut-subtree)))
+          (save-buffer)
+          (unless buffer-visiting-p
+            (kill-buffer))))))
+    (run-hook-with-args 'org-roam-rewrite-node-removed-functions
+                        (list :title (org-roam-node-title node) :id id :file file :level level))))
 
 ;;;###autoload
 (defun org-roam-rewrite-rename (node new-title)
