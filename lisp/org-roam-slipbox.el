@@ -110,17 +110,15 @@ tag applied."
 
 
 
+(defun org-roam-slipbox--sanitize-tag (str)
+  (s-replace-regexp (rx (not (any alnum "_@#%"))) "_" str))
+
 (defun org-roam-slipbox-from-file (file)
   (condition-case nil
-      (let* ((dir (f-dirname file))
-             (name  (s-replace " " "_" (file-name-nondirectory dir))))
-        (cond ((f-same-p dir org-roam-directory)
-               org-roam-slipbox-default)
-              ((string-match-p org-tag-re name)
-               name)
-              ;; NB. If `name' isn't a legal tag, apply the default.
-              (t
-               org-roam-slipbox-default)))
+      (let ((dir (f-dirname file)))
+        (if (f-same-p dir org-roam-directory)
+            org-roam-slipbox-default
+          (org-roam-slipbox--sanitize-tag (file-name-nondirectory dir))))
     (error org-roam-slipbox-default)))
 
 ;;;###autoload
