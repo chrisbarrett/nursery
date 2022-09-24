@@ -47,6 +47,10 @@ UI. Contrasts with the normal org-roam buffer, which only shows backlinks.
 A version of =consult-ripgrep= that shows node titles instead of filenames so you
 don't have to guess anymore.
 
+** INCUBATING [[file:lisp/org-roam-slipbox.el][org-roam-slipbox]] (/incubating/)
+Automatically tag nodes according to the name of the directory they're in, and
+easily refile between these directories.
+
 ** SPIKE [[file:lisp/org-roam-gc.el][org-roam-gc]] /(spike)/
 Automatically delete empty dailies files so they don't build up forever.
 
