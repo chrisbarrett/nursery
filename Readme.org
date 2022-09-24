@@ -129,4 +129,10 @@ its lisp directory in your load path, then installing anything missing. 🤷
                  org-roam-rewrite-remove
                  org-roam-rewrite-inline
                  org-roam-rewrite-extract))
+
+    (use-package org-roam-slipbox
+      :after org-roam
+      :demand t
+      :config
+      (org-roam-slipbox-tag-mode +1))
   #+end_src
