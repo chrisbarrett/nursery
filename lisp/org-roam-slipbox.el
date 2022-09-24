@@ -171,7 +171,10 @@ See also: `org-roam-slipbox-default'."
 
 (defun org-roam-slipbox--ad-append-slipbox-tag (&optional _tags-only)
   (when-let* ((slipbox (ignore-errors (org-roam-slipbox-from-file (buffer-file-name)))))
-    (add-to-list 'org-file-tags slipbox)))
+    (add-to-list 'org-file-tags
+                 ;; File-level properties should always have this text property,
+                 ;; otherwise org shows the tag in the agenda, for instance.
+                 (propertize slipbox 'inherited t))))
 
 ;;;###autoload
 (define-minor-mode org-roam-slipbox-tag-mode
