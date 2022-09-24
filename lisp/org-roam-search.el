@@ -195,40 +195,41 @@ QUERY is a PRCE regexp string that will be passed to ripgrep."
                            (not (string-prefix-p "(" input)))
                       (format "(%s)" input)
                     input))))
-  (org-roam-review-display-buffer-and-select
-   (org-roam-review-create-buffer
-    :title (format "Search Results: %s" query)
-    :placeholder "No search results"
-    :buffer-name org-roam-search-buffer-name
-    :nodes
-    (lambda ()
-      (org-roam-search--ripgrep-for-nodes query))
-    :render
-    (-lambda ((&plist :nodes :placeholder :root-section))
-      (cond
-       ((null nodes)
-        (insert placeholder)
-        (newline))
-       (t
-        (pcase-dolist (`(,_file . ,group) (seq-group-by #'org-roam-node-file nodes))
-          (when-let* ((top-node (-max-by (-on #'< #'org-roam-node-level)
-                                         group) )
-                      (node-id (org-roam-node-id top-node))
-                      (heading (org-link-display-format (org-roam-node-title top-node))))
-            (magit-insert-section section (org-roam-node-section node-id t)
-              (magit-insert-heading
-                (concat (propertize heading 'font-lock-face 'magit-section-heading)
-                        " "
-                        (when-let* ((mat (org-roam-review-node-maturity top-node)))
-                          (alist-get mat org-roam-review-maturity-emoji-alist nil nil #'equal))))
-              (oset section parent root-section)
-              (oset section node top-node)
-              (oset section washer
-                    (lambda ()
-                      (org-roam-review-insert-preview top-node)
-                      (org-roam-search--highlight-matches query)
-                      (magit-section-maybe-remove-visibility-indicator section))))))
-        (org-roam-search--highlight-matches query)))))))
+  (let ((nodes (org-roam-search--ripgrep-for-nodes query)))
+    (org-roam-review-display-buffer-and-select
+     (org-roam-review-create-buffer
+      :title (format "Search Results: %s" query)
+      :placeholder "No search results"
+      :buffer-name org-roam-search-buffer-name
+      :nodes
+      (lambda ()
+        (seq-remove #'org-roam-review-node-ignored-p nodes))
+      :render
+      (-lambda ((&plist :nodes :placeholder :root-section))
+        (cond
+         ((null nodes)
+          (insert placeholder)
+          (newline))
+         (t
+          (pcase-dolist (`(,_file . ,group) (seq-group-by #'org-roam-node-file nodes))
+            (when-let* ((top-node (-max-by (-on #'< #'org-roam-node-level)
+                                           group) )
+                        (node-id (org-roam-node-id top-node))
+                        (heading (org-link-display-format (org-roam-node-title top-node))))
+              (magit-insert-section section (org-roam-node-section node-id t)
+                (magit-insert-heading
+                  (concat (propertize heading 'font-lock-face 'magit-section-heading)
+                          " "
+                          (when-let* ((mat (org-roam-review-node-maturity top-node)))
+                            (alist-get mat org-roam-review-maturity-emoji-alist nil nil #'equal))))
+                (oset section parent root-section)
+                (oset section node top-node)
+                (oset section washer
+                      (lambda ()
+                        (org-roam-review-insert-preview top-node)
+                        (org-roam-search--highlight-matches query)
+                        (magit-section-maybe-remove-visibility-indicator section))))))
+          (org-roam-search--highlight-matches query))))))))
 
 ;;;###autoload
 (defun org-roam-search-tags (query)
