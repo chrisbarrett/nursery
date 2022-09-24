@@ -134,5 +134,6 @@ its lisp directory in your load path, then installing anything missing. 🤷
       :after org-roam
       :demand t
       :config
+      (org-roam-slipbox-buffer-identification-mode +1)
       (org-roam-slipbox-tag-mode +1))
   #+end_src

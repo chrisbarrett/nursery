@@ -52,6 +52,7 @@
 ;;      :after org-roam
 ;;      :demand t
 ;;      :config
+;;      (org-roam-slipbox-buffer-identification-mode +1)
 ;;      (org-roam-slipbox-tag-mode +1))
 ;;
 ;; After enabling the mode, run `C-u M-x org-roam-db-sync' to rebuild your notes
@@ -84,10 +85,21 @@ tag applied."
   :group 'org-roam-slipbox
   :type 'hook)
 
+(defcustom org-roam-slipbox-mode-line-separator " > "
+  "The separator string between the slipbox name and the node title."
+  :group 'org-roam-slipbox
+  :type 'string)
+
 (defface org-roam-slipbox-name
   '((t
      (:inherit font-lock-string-face)))
   "Face for references to slipboxes."
+  :group 'org-roam-slipbox)
+
+(defface org-roam-slipbox-mode-line-separator
+  '((t
+     (:inherit comment)))
+  "Face for the separator in the mode line string."
   :group 'org-roam-slipbox)
 
 (defcustom org-roam-slipbox-use-git-p t
@@ -167,6 +179,59 @@ See also: `org-roam-slipbox-default'."
     (advice-add 'org-set-regexps-and-options :after #'org-roam-slipbox--ad-append-slipbox-tag))
    (t
     (advice-remove 'org-set-regexps-and-options #'org-roam-slipbox--ad-append-slipbox-tag))))
+
+
+
+(defvar-local org-roam-slipbox--original-buffer-identification nil
+  "Stores the original value of `mode-line-buffer-identification'.
+
+This means titles can be restored if
+`org-roam-slipbox-buffer-identification-mode' is toggled.")
+
+;;;###autoload
+(define-minor-mode org-roam-slipbox-buffer-identification-mode
+  "Display the slipbox and node title as the buffer name."
+  :global t
+  (cond
+   (org-roam-slipbox-buffer-identification-mode
+    (add-hook 'org-mode-hook #'org-roam-slipbox--set-up-buffer-identification-mode)
+    (add-hook 'org-roam-rewrite-node-renamed-hook #'org-roam-slipbox-update-buffer-identification)
+    (add-hook 'org-roam-slipbox-after-refile-hook #'org-roam-slipbox-update-buffer-identification)
+
+    (when (derived-mode-p 'org-mode)
+      (org-roam-slipbox--set-up-buffer-identification-mode)))
+   (t
+    (remove-hook 'org-mode-hook #'org-roam-slipbox--set-up-buffer-identification-mode)
+    (remove-hook 'org-roam-rewrite-node-renamed-hook #'org-roam-slipbox-update-buffer-identification)
+    (remove-hook 'org-roam-slipbox-after-refile-hook #'org-roam-slipbox-update-buffer-identification)
+
+    ;; Restore default buffer identification settings.
+    (dolist (buf (seq-filter (lambda (it) (with-current-buffer it (derived-mode-p 'org-mode)))
+                             (buffer-list)))
+      (with-current-buffer buf
+        (org-roam-slipbox-update-buffer-identification))))))
+
+(defun org-roam-slipbox--set-up-buffer-identification-mode ()
+  ;; Save the default buffer identification settings.
+  (setq org-roam-slipbox--original-buffer-identification mode-line-buffer-identification)
+
+  (unless org-inhibit-startup
+    (org-roam-slipbox-update-buffer-identification)
+    (add-hook 'after-save-hook #'org-roam-slipbox-update-buffer-identification nil t)))
+
+(defun org-roam-slipbox-update-buffer-identification ()
+  (cond
+   (org-roam-slipbox-buffer-identification-mode
+    (when-let* ((node
+                 (ignore-errors (save-excursion
+                                  (goto-char (point-min))
+                                  (org-roam-node-at-point)))))
+      (setq-local mode-line-buffer-identification
+                  (concat (propertize (org-roam-node-slipbox node) 'face 'org-roam-slipbox-name)
+                          (propertize org-roam-slipbox-mode-line-separator 'face 'org-roam-slipbox-mode-line-separator)
+                          (propertize (org-roam-node-title node) 'face 'mode-line-highlight 'help-echo (buffer-file-name))))))
+   (t
+    (setq-local mode-line-buffer-identification org-roam-slipbox--original-buffer-identification))))
 
 (provide 'org-roam-slipbox)
 
