@@ -64,6 +64,7 @@
 (require 'f)
 (require 'magit)
 (require 'org-roam)
+(require 'org-roam-review)
 (require 'org-roam-rewrite)
 
 (defgroup org-roam-slipbox nil
@@ -134,15 +135,17 @@ See also: `org-roam-slipbox-default'."
   (magit-call-git "add" (magit-convert-filename-for-git from))
   (magit-file-rename from to))
 
+(defun org-roam-slipbox--read (&optional current-slipbox)
+  (let ((slipboxes (seq-difference (seq-map #'f-base (f-directories org-roam-directory))
+                                   (list current-slipbox))))
+    (completing-read "Slipbox: " slipboxes nil t)))
+
 ;;;###autoload
 (defun org-roam-slipbox-refile (node slipbox)
   "Move NODE into SLIPBOX."
   (interactive (let* ((node (org-roam-node-at-point t))
-                      (current-slipbox (org-roam-node-slipbox node))
-                      (slipboxes (seq-difference (seq-map #'f-base (f-directories org-roam-directory))
-                                                 (list current-slipbox))))
-                 (list node
-                       (completing-read "Slipbox: " slipboxes nil t))))
+                      (current-slipbox (org-roam-node-slipbox node)))
+                 (list node (org-roam-slipbox--read current-slipbox))))
 
   (let ((current-slipbox (org-roam-node-slipbox node))
         dest)
@@ -232,6 +235,26 @@ This means titles can be restored if
                           (propertize (org-roam-node-title node) 'face 'mode-line-highlight 'help-echo (buffer-file-name))))))
    (t
     (setq-local mode-line-buffer-identification org-roam-slipbox--original-buffer-identification))))
+
+
+
+;;;###autoload
+(defun org-roam-slipbox-list-notes (slipbox)
+  "List nodes belonging to SLIPBOX."
+  (interactive (list (org-roam-slipbox--read)))
+  (org-roam-review-display-buffer-and-select
+   (org-roam-review-create-buffer
+    :title (concat "Notes for slipbox: " (propertize slipbox 'face 'org-roam-slipbox-name))
+    :instructions "The nodes below are sorted by slipbox"
+    :group-on (lambda (it)
+                (or (org-roam-review--maturity-header it)
+                    (cons "Others" 4)))
+    :nodes
+    (lambda ()
+      (seq-filter (lambda (node)
+                    (seq-contains-p (org-roam-node-tags node) slipbox))
+                  (org-roam-node-list)))
+    :sort #'org-roam-review-sort-by-title-case-insensitive)))
 
 (provide 'org-roam-slipbox)
 
