@@ -72,6 +72,11 @@ from the original node: :title, :level, :file, :id"
   :group 'org-roam-rewrite
   :type 'hook)
 
+(defcustom org-roam-rewrite-rename-file-and-buffer-p nil
+  "Whether to rename files and buffer."
+  :group 'org-roam-rewrite
+  :type 'boolean)
+
 
 
 (defun org-roam-rewrite--set-title-keyword (text)
@@ -143,10 +148,25 @@ from the original node: :title, :level, :file, :id"
 (defun org-roam-rewrite--update-node-title (node new-title)
   (org-id-goto (org-roam-node-id node))
   (cond ((equal 0 (org-roam-node-level node))
-         (org-roam-rewrite--set-title-keyword new-title))
+         (if org-roam-rewrite-rename-file-and-buffer-p
+             (let* ((filename buffer-file-name)
+                    (old-title (file-name-base filename)))
+               (unless (equal old-title new-title)
+                 (let* ((extension (file-name-extension filename))
+                        (new-filename (concat new-title "." extension)))
+                   (rename-file filename new-filename)
+                   (set-visited-file-name new-filename)
+                   (rename-buffer new-filename)
+                   (call-interactively 'uniquify-rationalize-file-buffer-names)
+                   (org-roam-rewrite--set-title-keyword new-title)
+                   (save-buffer)
+                   (unless (equal (file-name-nondirectory buffer-file-name) new-filename)
+                     (error "Failed to change the filename to %s" new-filename)))))
+           (org-roam-rewrite--set-title-keyword new-title)
+           (save-buffer)))
         ((looking-at org-complex-heading-regexp)
-         (replace-match new-title t t nil 4)))
-  (save-buffer))
+         (replace-match new-title t t nil 4)
+         (save-buffer))))
 
 (defun org-roam-rewrite--delete-node-kill-buffer (node)
   (let ((level (org-roam-node-level node))
