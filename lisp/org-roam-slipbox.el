@@ -115,8 +115,8 @@ tag applied."
 
 (defun org-roam-slipbox-from-file (file)
   (condition-case nil
-      (let ((dir (f-dirname file)))
-        (if (f-same-p dir org-roam-directory)
+      (let ((dir (directory-file-name (file-name-directory file))))
+        (if (equal dir org-roam-directory)
             org-roam-slipbox-default
           (org-roam-slipbox--sanitize-tag (file-name-nondirectory dir))))
     (error org-roam-slipbox-default)))
