@@ -72,6 +72,13 @@ from the original node: :title, :level, :file, :id"
   :group 'org-roam-rewrite
   :type 'hook)
 
+(defcustom org-roam-rewrite-node-renamed-hook nil
+  "Hook executed after renaming a node.
+
+It is called with the renamed node as the current buffer."
+  :group 'org-roam-rewrite
+  :type 'hook)
+
 
 
 (defun org-roam-rewrite--set-title-keyword (text)
@@ -199,7 +206,8 @@ descriptions updated to this value."
              (org-roam-rewrite--edit-backlinks backlinks (org-roam-node-id node) new-title)
              (message "Rewrote %s links to node." (length backlinks)))
             (t
-             (message "Rename completed.")))))))
+             (message "Rename completed.")))))
+    (run-hooks 'org-roam-rewrite-node-renamed-hook)))
 
 ;;;###autoload
 (defun org-roam-rewrite-remove (from to link-desc)
