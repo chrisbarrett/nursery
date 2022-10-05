@@ -73,6 +73,19 @@ Only applies to level-1 headings in the document."
     (let ((tags (org-get-tags)))
       (seq-contains-p tags org-archive-tag))))
 
+(defun org-format--delete-blank-lines ()
+  "Modified version of `delete-blank-lines'."
+  (beginning-of-line)
+  (when (looking-at "[ \t]*$")
+    (delete-region (point)
+                   (if (re-search-backward "[^ \t\n]" nil t)
+                       (progn (forward-line 1) (point))
+                     (point-min))))
+  ;; Handle the special case where point is followed by newline and eob.
+  ;; Delete the line, leaving point at eob.
+  (when (looking-at "^[ \t]*\n\\'")
+    (delete-region (point) (point-max))))
+
 (defun org-format-all-headings ()
   "Ensure that blank lines exist between headings and their contents."
   (interactive)
@@ -100,7 +113,7 @@ Only applies to level-1 headings in the document."
                        (unless (and (fboundp 'org-transclusion-within-transclusion-p)
                                     (org-transclusion-within-transclusion-p))
                          (forward-line 1)
-                         (delete-blank-lines)
+                         (org-format--delete-blank-lines)
                          (org-format--ensure-empty-lines org-format-blank-lines-before-meta)
                          (org-end-of-meta-data t)
                          (org-format--ensure-empty-lines org-format-blank-lines-before-content)))
@@ -110,7 +123,7 @@ Only applies to level-1 headings in the document."
     (org-with-wide-buffer
      ;; Clean up trailing whitespace.
      (goto-char (point-max))
-     (delete-blank-lines)
+     (org-format--delete-blank-lines)
 
      ;; Format transcluded headings as if they were really there.
      (goto-char (point-min))
