@@ -54,12 +54,6 @@ Only applies to level-1 headings in the document."
 
 
 
-
-(defun org-format--delete-empty-lines ()
-  (goto-char (line-beginning-position))
-  (while (thing-at-point-looking-at (rx bol (* space) eol))
-    (delete-region (line-beginning-position) (1+ (line-end-position)))))
-
 (defun org-format--ensure-empty-lines (n)
   (save-excursion
     (goto-char (line-beginning-position))
@@ -106,15 +100,19 @@ Only applies to level-1 headings in the document."
                        (unless (and (fboundp 'org-transclusion-within-transclusion-p)
                                     (org-transclusion-within-transclusion-p))
                          (forward-line 1)
-                         (org-format--delete-empty-lines)
+                         (delete-blank-lines)
                          (org-format--ensure-empty-lines org-format-blank-lines-before-meta)
                          (org-end-of-meta-data t)
                          (org-format--ensure-empty-lines org-format-blank-lines-before-content)))
                      t
                      scope)
 
-    ;; Format transcluded headings as if they were really there.
     (org-with-wide-buffer
+     ;; Clean up trailing whitespace.
+     (goto-char (point-max))
+     (delete-blank-lines)
+
+     ;; Format transcluded headings as if they were really there.
      (goto-char (point-min))
      (while (search-forward-regexp (rx bol "#+transclude:") nil t)
        (save-excursion
