@@ -119,6 +119,16 @@ Will be used if:
   :group 'timekeep
   :type 'hook)
 
+(defcustom timekeep-punched-in-hook nil
+  "Hook run after punching in."
+  :group 'timekeep
+  :type 'hook)
+
+(defcustom timekeep-punched-out-hook nil
+  "Hook run after punching out."
+  :group 'timekeep
+  :type 'hook)
+
 (defcustom timekeep-node-to-name-function #'org-roam-node-title
   "Function taking an `org-roam-node' and returning a company or cilent's name."
   :group 'timekeep
@@ -334,6 +344,8 @@ on the default headline for that client."
                              '(4)))
       (error (timekeep--clock-in-on-default)))))
 
+  (run-hooks 'timekeep-punched-in-hook)
+
   (when (derived-mode-p 'org-agenda-mode)
     ;; Swap agenda due to context change.
     (run-hooks 'timekeep-agenda-should-update-hook)))
@@ -347,6 +359,9 @@ on the default headline for that client."
     (org-clock-out))
   (org-agenda-remove-restriction-lock)
   (org-save-all-org-buffers)
+
+  (run-hooks 'timekeep-punched-out-hook)
+
   (when (derived-mode-p 'org-agenda-mode)
     ;; Swap agenda due to context change.
     (run-hooks 'timekeep-agenda-should-update-hook))
