@@ -128,10 +128,29 @@ tag applied."
 See also: `org-roam-slipbox-default'."
   (org-roam-slipbox-from-file (org-roam-node-file node)))
 
-(defun org-roam-slipbox--rename-with-magit (from to)
-  ;; Ensure the file is tracked by git.
-  (magit-call-git "add" (magit-convert-filename-for-git from))
-  (magit-file-rename from to))
+(defun org-roam-slipbox--rename-file-without-git (from to)
+  "Move file FROM to TO, updating the file's buffer if open.
+
+Adapted from `magit-file-rename', but with the git actions stripped out."
+  (rename-file from to)
+  (when-let* ((buf (get-file-buffer from)))
+    (with-current-buffer buf
+      (let ((buffer-read-only buffer-read-only))
+        (set-visited-file-name to nil t)))))
+
+(defun org-roam-slipbox--rename-file-with-magit (from to)
+  (let ((repo-a (magit-toplevel (f-dirname from)))
+        (repo-b (magit-toplevel (f-dirname to))))
+    (debug repo-a repo-b)
+
+    ;; Ensure the file is tracked by git.
+    (magit-call-git "add" (magit-convert-filename-for-git from))
+
+    (if (equal repo-a repo-b)
+        (magit-file-rename from to)
+      (let ((default-directory repo-b))
+        (org-roam-slipbox--rename-file-without-git from to)
+        (magit-call-git "add" (magit-convert-filename-for-git to))))))
 
 (defun org-roam-slipbox--read (&optional current-slipbox)
   (let ((slipboxes (seq-difference (seq-map #'f-base (f-directories org-roam-directory))
@@ -152,8 +171,8 @@ See also: `org-roam-slipbox-default'."
       (let ((file (org-roam-node-file node)))
         (setq dest (f-join org-roam-directory slipbox (f-filename file)))
         (if org-roam-slipbox-use-git-p
-            (org-roam-slipbox--rename-with-magit file dest)
-          (rename-file file dest))
+            (org-roam-slipbox--rename-file-with-magit file dest)
+          (org-roam-slipbox--rename-file-without-git file dest))
         (org-roam-db-sync)))
      (t
       (let ((new-file (f-filename (org-roam-rewrite--new-filename-from-capture-template node))))
