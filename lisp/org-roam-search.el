@@ -63,6 +63,11 @@
   :group 'org-roam-search
   :type 'string)
 
+(defcustom org-roam-search-ripgrep-flags '("--follow" "--smart-case" "--json")
+  "The flags to apply when searching via ripgrep."
+  :group 'org-roam-search
+  :type '(list string))
+
 (defcustom org-roam-search-ignored-tags nil
   "A list of tags for nodes that should never be included in search results.
 
@@ -161,27 +166,26 @@ would be excluded."
 
 (defun org-roam-search--ripgrep-for-nodes (query)
   (let ((reporter (make-progress-reporter "Searching nodes"))
-        (files (ht-create)))
+        (files (ht-create))
+        (ripgrep-args (append org-roam-search-ripgrep-flags (list query org-roam-directory))))
     (async-wait
-     (async-start-process "ripgrep" org-roam-search-ripgrep-program
-                          (lambda (_)
-                            (goto-char (point-min))
-                            (while (not (eobp))
-                              (progress-reporter-update reporter)
-                              (-when-let* ((line (buffer-substring (line-beginning-position) (line-end-position)))
+     (apply 'async-start-process "ripgrep" org-roam-search-ripgrep-program
+            (lambda (_)
+              (goto-char (point-min))
+              (while (not (eobp))
+                (progress-reporter-update reporter)
+                (-when-let* ((line (buffer-substring (line-beginning-position) (line-end-position)))
 
-                                           ((parsed &as &plist :type)
-                                            (json-parse-string line :object-type 'plist))
+                             ((parsed &as &plist :type)
+                              (json-parse-string line :object-type 'plist))
 
-                                           ((&plist :data (&plist :path (&plist :text file) :absolute_offset pos))
-                                            (when (equal "match" type)
-                                              parsed))
-                                           (file (expand-file-name file org-roam-directory)))
-                                (puthash file file files))
-                              (forward-line)))
-                          "--smart-case"
-                          "--json"
-                          query org-roam-directory))
+                             ((&plist :data (&plist :path (&plist :text file) :absolute_offset pos))
+                              (when (equal "match" type)
+                                parsed))
+                             (file (expand-file-name file org-roam-directory)))
+                  (puthash file file files))
+                (forward-line)))
+            ripgrep-args))
     (progress-reporter-done reporter)
     (seq-filter (lambda (node)
                   (and (ht-get files (org-roam-node-file node))
