@@ -63,8 +63,8 @@
   :group 'org-roam-search
   :type 'string)
 
-(defcustom org-roam-search-ripgrep-flags '("--follow" "--smart-case" "--json")
-  "The flags to apply when searching via ripgrep."
+(defcustom org-roam-search-ripgrep-extra-flags '("--follow" "--smart-case")
+  "Extra flags to apply when searching via ripgrep."
   :group 'org-roam-search
   :type '(list string))
 
@@ -167,7 +167,7 @@ would be excluded."
 (defun org-roam-search--ripgrep-for-nodes (query)
   (let ((reporter (make-progress-reporter "Searching nodes"))
         (files (ht-create))
-        (ripgrep-args (append org-roam-search-ripgrep-flags (list query org-roam-directory))))
+        (ripgrep-args (append org-roam-search-ripgrep-extra-flags (list "--json" query org-roam-directory))))
     (async-wait
      (apply 'async-start-process "ripgrep" org-roam-search-ripgrep-program
             (lambda (_)
