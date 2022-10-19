@@ -141,7 +141,6 @@ Adapted from `magit-file-rename', but with the git actions stripped out."
 (defun org-roam-slipbox--rename-file-with-magit (from to)
   (let ((repo-a (magit-toplevel (f-dirname from)))
         (repo-b (magit-toplevel (f-dirname to))))
-    (debug repo-a repo-b)
 
     ;; Ensure the file is tracked by git.
     (magit-call-git "add" (magit-convert-filename-for-git from))
