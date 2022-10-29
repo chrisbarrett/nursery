@@ -395,8 +395,8 @@ but it handles file titles, tags and transclusions better."
                 (while (> (org-current-level) 1) (org-promote-subtree))
                 (save-buffer)
                 (org-roam-promote-entire-buffer)
-                (when-let* ((tags (-difference (-union (org-roam-rewrite--file-tags) tags)
-                                               org-roam-rewrite-extract-excluded-tags)))
+                (let ((tags (-difference (-union (org-roam-rewrite--file-tags) tags)
+                                         org-roam-rewrite-extract-excluded-tags)))
                   (org-roam-rewrite--set-file-tags tags)
                   (org-roam-rewrite--when-transclusions
                     (org-transclusion-add-all)))
