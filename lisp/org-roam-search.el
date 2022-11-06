@@ -63,7 +63,7 @@
   :group 'org-roam-search
   :type 'string)
 
-(defcustom org-roam-search-ripgrep-extra-flags '("--follow" "--smart-case")
+(defcustom org-roam-search-ripgrep-extra-flags '("--follow" "--smart-case" "--no-messages")
   "Extra flags to apply when searching via ripgrep."
   :group 'org-roam-search
   :type '(list string))
