@@ -341,7 +341,12 @@ When called with a `C-u' prefix arg, clear the current filter."
                                                                (propertize "(Empty)" 'font-lock-face 'font-lock-comment-face)
                                                              content)
                                                            depth)))))
-           (formatted-preview (seq-reduce (lambda (str fn) (funcall fn str)) post-formatters preview)))
+           (formatted-preview (seq-reduce (lambda (str fn)
+                                            (save-match-data
+                                              (save-excursion
+                                                (funcall fn str))))
+                                          post-formatters
+                                          preview)))
       (oset section file file)
       (oset section point start)
       (insert formatted-preview)
