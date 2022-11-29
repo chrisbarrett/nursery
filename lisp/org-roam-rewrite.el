@@ -193,18 +193,20 @@ descriptions updated to this value."
                  (list node (read-string "New title: " (org-roam-node-title node)))))
   (org-roam-node-visit node)
   (org-save-all-org-buffers)
-  (let ((backlinks (org-roam-backlinks-get node)))
+  (org-roam-rewrite--update-node-title node new-title)
+  (let* ((node-id (org-roam-node-id node))
+         ;; Get an updated node with the new title.
+         (node (org-roam-node-from-id node-id))
+         (backlinks (org-roam-backlinks-get node)))
     (cond
      ((null backlinks)
-      (org-roam-rewrite--update-node-title node new-title)
       (message "Renamed. No backlinks to update."))
      (t
-      (org-roam-rewrite--update-node-title node new-title)
       (cond ((y-or-n-p (format "Modify %s backlink description%s? "
                                (length backlinks)
                                (if (= 1 (length backlinks)) "" "s")))
              (org-roam-rewrite--edit-backlinks backlinks
-                                               (org-roam-node-id node)
+                                               node-id
                                                (if org-roam-node-formatter
                                                    (funcall org-roam-node-formatter node)
                                                  new-title))
