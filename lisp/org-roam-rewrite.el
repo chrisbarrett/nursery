@@ -203,7 +203,11 @@ descriptions updated to this value."
       (cond ((y-or-n-p (format "Modify %s backlink description%s? "
                                (length backlinks)
                                (if (= 1 (length backlinks)) "" "s")))
-             (org-roam-rewrite--edit-backlinks backlinks (org-roam-node-id node) new-title)
+             (org-roam-rewrite--edit-backlinks backlinks
+                                               (org-roam-node-id node)
+                                               (if org-roam-node-formatter
+                                                   (funcall org-roam-node-formatter node)
+                                                 new-title))
              (message "Rewrote %s links to node." (length backlinks)))
             (t
              (message "Rename completed.")))))
@@ -229,7 +233,10 @@ LINK-DESC is the description to use for the updated links."
                  (if (zerop (length backlinks))
                      (list from nil nil)
                    (let* ((to (org-roam-node-read nil (lambda (it) (not (equal from it))) nil t "Rewrite to: "))
-                          (desc (read-string "Link description: " (org-roam-node-title to))))
+                          (desc (read-string "Link description: "
+                                             (if org-roam-node-formatter
+                                                 (funcall org-roam-node-formatter to)
+                                               (org-roam-node-title to)))))
                      (list from to desc)))))
   (let ((backlinks (org-roam-backlinks-get from)))
     (cond
@@ -384,7 +391,10 @@ but it handles file titles, tags and transclusions better."
               (org-roam-db-update-file)
               (when org-roam-rewrite-insert-link-after-extraction-p
                 (insert (org-link-make-string (format "id:%s" (org-roam-node-id node))
-                                              (org-link-display-format (org-roam-node-title node))))
+                                              (org-link-display-format
+                                               (if org-roam-node-formatter
+                                                   (funcall org-roam-node-formatter node)
+                                                 (org-roam-node-title node)))))
                 (newline))
               (org-roam-rewrite--when-transclusions
                 (org-transclusion-add-all))
