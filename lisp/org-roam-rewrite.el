@@ -181,6 +181,12 @@ It is called with the renamed node as the current buffer."
     (run-hook-with-args 'org-roam-rewrite-node-removed-functions
                         (list :title (org-roam-node-title node) :id id :file file :level level))))
 
+(defun org-roam-rewrite--node-formatted-title (node &optional default)
+  (if org-roam-node-formatter
+      (funcall org-roam-node-formatter node)
+    (or default
+        (org-roam-node-title node))))
+
 ;;;###autoload
 (defun org-roam-rewrite-rename (node new-title)
   "Change the title of a node and update links to match.
@@ -205,11 +211,7 @@ descriptions updated to this value."
       (cond ((y-or-n-p (format "Modify %s backlink description%s? "
                                (length backlinks)
                                (if (= 1 (length backlinks)) "" "s")))
-             (org-roam-rewrite--edit-backlinks backlinks
-                                               node-id
-                                               (if org-roam-node-formatter
-                                                   (funcall org-roam-node-formatter node)
-                                                 new-title))
+             (org-roam-rewrite--edit-backlinks backlinks node-id (org-roam-rewrite--node-formatted-title node new-title))
              (message "Rewrote %s links to node." (length backlinks)))
             (t
              (message "Rename completed.")))))
@@ -235,10 +237,7 @@ LINK-DESC is the description to use for the updated links."
                  (if (zerop (length backlinks))
                      (list from nil nil)
                    (let* ((to (org-roam-node-read nil (lambda (it) (not (equal from it))) nil t "Rewrite to: "))
-                          (desc (read-string "Link description: "
-                                             (if org-roam-node-formatter
-                                                 (funcall org-roam-node-formatter to)
-                                               (org-roam-node-title to)))))
+                          (desc (read-string "Link description: " (org-roam-rewrite--node-formatted-title to))))
                      (list from to desc)))))
   (let ((backlinks (org-roam-backlinks-get from)))
     (cond
@@ -393,10 +392,7 @@ but it handles file titles, tags and transclusions better."
               (org-roam-db-update-file)
               (when org-roam-rewrite-insert-link-after-extraction-p
                 (insert (org-link-make-string (format "id:%s" (org-roam-node-id node))
-                                              (org-link-display-format
-                                               (if org-roam-node-formatter
-                                                   (funcall org-roam-node-formatter node)
-                                                 (org-roam-node-title node)))))
+                                              (org-link-display-format (org-roam-rewrite--node-formatted-title node))))
                 (newline))
               (org-roam-rewrite--when-transclusions
                 (org-transclusion-add-all))
