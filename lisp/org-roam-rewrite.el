@@ -423,7 +423,7 @@ but it handles file titles, tags and transclusions better."
 
         (save-buffer)
         (with-current-buffer dest-buf
-          (run-hooks 'org-roam-node-capture-new-node-hook 'org-roam-rewrite-node-extracted-hook))))))
+          (run-hooks 'org-roam-capture-new-node-hook 'org-roam-rewrite-node-extracted-hook))))))
 
 (provide 'org-roam-rewrite)
 
