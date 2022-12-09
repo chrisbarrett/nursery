@@ -229,8 +229,7 @@ FROM is the node which will be unlinked.
 TO is the node to change those references to point to.
 
 LINK-DESC is the description to use for the updated links."
-  (interactive (let* ((suggested-title (-some->> (org-roam-node-at-point) (org-roam-node-title)))
-                      (from (org-roam-node-read suggested-title nil nil t "Remove: "))
+  (interactive (let* ((from (org-roam-node-at-point t))
                       (backlinks (progn
                                    (org-save-all-org-buffers)
                                    (org-roam-backlinks-get from))))
