@@ -57,6 +57,11 @@
   :group 'org-roam-rewrite
   :type 'boolean)
 
+(defcustom org-roam-rewrite-rename-without-confirmation-p nil
+  "Whether to ask for confirmation before updating link descriptions on node rename."
+  :group 'org-roam-rewrite
+  :type 'boolean)
+
 (defcustom org-roam-rewrite-node-extracted-hook nil
   "Hook run after a node has been extracted successfully to a new file.
 
@@ -208,9 +213,10 @@ descriptions updated to this value."
      ((null backlinks)
       (message "Renamed. No backlinks to update."))
      (t
-      (cond ((y-or-n-p (format "Modify %s backlink description%s? "
-                               (length backlinks)
-                               (if (= 1 (length backlinks)) "" "s")))
+      (cond ((or org-roam-rewrite-rename-without-confirmation-p
+                 (y-or-n-p (format "Modify %s backlink description%s? "
+                                   (length backlinks)
+                                   (if (= 1 (length backlinks)) "" "s"))))
              (org-roam-rewrite--edit-backlinks backlinks node-id (org-roam-rewrite--node-formatted-title node new-title))
              (message "Rewrote %s links to node." (length backlinks)))
             (t
