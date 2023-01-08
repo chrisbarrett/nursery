@@ -218,7 +218,9 @@ descriptions updated to this value."
                                    (length backlinks)
                                    (if (= 1 (length backlinks)) "" "s"))))
              (org-roam-rewrite--edit-backlinks backlinks node-id (org-roam-rewrite--node-formatted-title node new-title))
-             (message "Rewrote %s links to node." (length backlinks)))
+             (message "Rewrote %s link%s to node."
+                      (length backlinks)
+                      (if (= 1 (length backlinks)) "" "s")))
             (t
              (message "Rename completed.")))))
     (run-hooks 'org-roam-rewrite-node-renamed-hook)))
