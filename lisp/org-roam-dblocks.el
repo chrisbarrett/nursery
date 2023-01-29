@@ -173,9 +173,13 @@ their blocks updated automatically."
 (plisty-define org-roam-dblocks-link
   :required (:id :desc))
 
-(defun org-roam-dblocks--link-to-list-item (link)
-  (concat "- " (org-link-make-string (concat "id:" (org-roam-dblocks-link-id link))
-                                     (org-roam-dblocks-link-desc link))))
+(defun org-roam-dblocks--make-list-item-formatter (params)
+  (let* ((indent (org-roam-dblocks-args-indent params))
+         (prefix (concat (make-string indent ?\ ) "- ")))
+    (lambda (link)
+      (concat prefix
+              (org-link-make-string (concat "id:" (org-roam-dblocks-link-id link))
+                                    (org-roam-dblocks-link-desc link))))))
 
 (defalias 'org-roam-dblocks--link-sorting
   (-on #'string-lessp (-compose #'downcase #'org-roam-dblocks-link-desc)))
@@ -183,7 +187,7 @@ their blocks updated automatically."
 (plisty-define org-roam-dblocks-args
   :optional (:id :match :tags :only-missing
              :name :indentation-column :content :forbidden-ids
-             :filter :remove))
+             :filter :remove :indent))
 
 (defun org-roam-dblocks--make-link-formatter (params)
   (let ((regexp-parser (when-let* ((matcher (org-roam-dblocks-args-match params)))
@@ -344,12 +348,16 @@ and old content."
         ;; Defer to default implementation for any dblocks we don't define in
         ;; this file..
         (apply fn args)
-      (let* ((node-id (ignore-errors
+      (let* ((indent (save-excursion
+                       (goto-char (match-beginning 0))
+                       (back-to-indentation)
+                       (current-column)))
+             (node-id (ignore-errors
                         (save-match-data
                           (org-roam-node-id (org-roam-node-at-point)))))
              (params (append (list :name name)
                              (read (concat "(" (match-string 3) ")"))
-                             (list :id node-id)))
+                             (list :id node-id :indent indent)))
              (content-start (match-end 0))
              (content-end (if (re-search-forward org-dblock-end-re nil t)
                               (1- (match-beginning 0))
@@ -395,7 +403,7 @@ and old content."
                      (-keep (-compose (org-roam-dblocks--compiled-predicates params) #'org-roam-backlink-source-node))
                      (seq-map (org-roam-dblocks--make-link-formatter params))
                      (seq-sort 'org-roam-dblocks--link-sorting)
-                     (seq-map #'org-roam-dblocks--link-to-list-item))))
+                     (seq-map (org-roam-dblocks--make-list-item-formatter params)))))
     (string-join lines  "\n")))
 
 ;;;###autoload
@@ -429,7 +437,7 @@ and old content."
                     (-keep (org-roam-dblocks--compiled-predicates params))
                     (seq-map (org-roam-dblocks--make-link-formatter params))
                     (seq-sort #'org-roam-dblocks--link-sorting)
-                    (seq-map #'org-roam-dblocks--link-to-list-item))))
+                    (seq-map (org-roam-dblocks--make-list-item-formatter params)))))
     (string-join lines "\n")))
 
 ;;;###autoload
