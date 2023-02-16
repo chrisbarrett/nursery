@@ -324,7 +324,7 @@ predicates.")
   (append (list (org-roam-dblocks-args-id params))
           (org-roam-dblocks-args-forbidden-ids params)
           (when (org-roam-dblocks-args-only-missing params)
-            (let ((node (org-roam-node-from-id (org-roam-dblocks-args-id params))))
+            (when-let* ((node (org-roam-node-from-id (org-roam-dblocks-args-id params))))
               (org-roam-dblocks--links-not-in-dblocks node)))))
 
 
@@ -397,14 +397,15 @@ and old content."
   (setf (plist-get params :forbidden-ids)
         (org-roam-dblocks--compute-forbidden-ids params))
 
-  (let* ((id (org-roam-dblocks-args-id params))
-         (node (if id (org-roam-node-from-id id) (org-roam-node-at-point t)))
-         (lines (->> (org-roam-backlinks-get node :unique t)
-                     (-keep (-compose (org-roam-dblocks--compiled-predicates params) #'org-roam-backlink-source-node))
-                     (seq-map (org-roam-dblocks--make-link-formatter params))
-                     (seq-sort 'org-roam-dblocks--link-sorting)
-                     (seq-map (org-roam-dblocks--make-list-item-formatter params)))))
-    (string-join lines  "\n")))
+  (if-let* ((id (org-roam-dblocks-args-id params))
+            (node (if id (org-roam-node-from-id id) (org-roam-node-at-point t)))
+            (lines (->> (org-roam-backlinks-get node :unique t)
+                        (-keep (-compose (org-roam-dblocks--compiled-predicates params) #'org-roam-backlink-source-node))
+                        (seq-map (org-roam-dblocks--make-link-formatter params))
+                        (seq-sort 'org-roam-dblocks--link-sorting)
+                        (seq-map (org-roam-dblocks--make-list-item-formatter params)))))
+      (string-join lines  "\n")
+    ""))
 
 ;;;###autoload
 (defalias 'org-dblock-write:backlinks #'org-roam-dblocks--write-content)
