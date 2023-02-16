@@ -661,34 +661,59 @@ them as reviewed with `org-roam-review-accept',
             (when (oref section node)
               (let ((inhibit-read-only t))
                 (put-text-property (line-beginning-position) (line-end-position) 'face 'font-lock-comment-face))
-              (magit-section-hide section))
-            (org-roam-review--forward-to-uncommented-sibling)))))))
+              (magit-section-hide section))))))))
+
+(defmacro org-roam-review--transform-selected-sections (&rest body)
+  "Execute BODY, possibly over multiple sections.
+
+Return the affected sections."
+  (declare (indent 0))
+  `(progn
+     (if-let* ((sections (-list (or (magit-region-sections) (magit-section-at)))))
+         (dolist (section sections)
+           (goto-char (oref section start))
+           (let ((buf (current-buffer))
+                 (result (progn ,@body)))
+             (when (buffer-live-p buf)
+               (with-current-buffer buf
+                 (deactivate-mark)
+                 (magit-section-deactivate-mark)
+                 (magit-section-update-highlight)))
+             result))
+       ,@body)
+     (org-roam-review--forward-to-uncommented-sibling)))
 
 ;;;###autoload
 (defun org-roam-review-accept ()
   "Confirm review of the current node."
   (interactive)
-  (org-roam-review--update-review-buffer-entry
-   (org-roam-review--visiting-node-at-point
-     (when-let* ((maturity (org-entry-get-with-inheritance "MATURITY")))
-       (org-roam-review--update-node-srs-properties maturity org-roam-review--maturity-score-ok))
-     (org-roam-review--update-workspace-for-completed-review)
-     (run-hooks 'org-roam-review-node-accepted-hook)
-     (run-hooks 'org-roam-review-node-processed-hook)
-     (message "Node scheduled for future review"))))
+  (let ((count 0))
+    (org-roam-review--transform-selected-sections
+      (cl-incf count)
+      (org-roam-review--update-review-buffer-entry
+       (org-roam-review--visiting-node-at-point
+         (when-let* ((maturity (org-entry-get-with-inheritance "MATURITY")))
+           (org-roam-review--update-node-srs-properties maturity org-roam-review--maturity-score-ok))
+         (org-roam-review--update-workspace-for-completed-review)
+         (run-hooks 'org-roam-review-node-accepted-hook)
+         (run-hooks 'org-roam-review-node-processed-hook))))
+    (message "Node%s scheduled for future review" (if (= 1 count) "" "s"))))
 
 ;;;###autoload
 (defun org-roam-review-bury ()
   "Confirm review of the current node and bury it."
   (interactive)
-  (org-roam-review--update-review-buffer-entry
-   (org-roam-review--visiting-node-at-point
-     (when-let* ((maturity (org-entry-get-with-inheritance "MATURITY")))
-       (org-roam-review--update-node-srs-properties maturity org-roam-review--maturity-score-bury))
-     (org-roam-review--update-workspace-for-completed-review)
-     (run-hooks 'org-roam-review-node-buried-hook)
-     (run-hooks 'org-roam-review-node-processed-hook)
-     (message "Node buried"))))
+  (let ((count 0))
+    (org-roam-review--transform-selected-sections
+      (cl-incf count)
+      (org-roam-review--update-review-buffer-entry
+       (org-roam-review--visiting-node-at-point
+         (when-let* ((maturity (org-entry-get-with-inheritance "MATURITY")))
+           (org-roam-review--update-node-srs-properties maturity org-roam-review--maturity-score-bury))
+         (org-roam-review--update-workspace-for-completed-review)
+         (run-hooks 'org-roam-review-node-buried-hook)
+         (run-hooks 'org-roam-review-node-processed-hook))))
+    (message "Node%s buried" (if (= 1 count) "" "s"))))
 
 (defun org-roam-review--skip-node-for-maturity-assignment-p ()
   (org-with-wide-buffer
@@ -702,13 +727,14 @@ them as reviewed with `org-roam-review-accept',
 With prefix arg BURY, the node is less likely to be surfaced in
 the future."
   (interactive "P")
-  (let ((score (if bury
-                   org-roam-review--maturity-score-bury
-                 org-roam-review--maturity-score-ok)))
-    (org-roam-review--update-review-buffer-entry
-     (org-roam-review--visiting-node-at-point
-       (unless (org-roam-review--skip-node-for-maturity-assignment-p)
-         (org-roam-review--update-node-srs-properties "budding" score))))))
+  (org-roam-review--transform-selected-sections
+    (let ((score (if bury
+                     org-roam-review--maturity-score-bury
+                   org-roam-review--maturity-score-ok)))
+      (org-roam-review--update-review-buffer-entry
+       (org-roam-review--visiting-node-at-point
+         (unless (org-roam-review--skip-node-for-maturity-assignment-p)
+           (org-roam-review--update-node-srs-properties "budding" score)))))))
 
 ;;;###autoload
 (defun org-roam-review-set-seedling (&optional bury)
@@ -717,13 +743,14 @@ the future."
 With prefix arg BURY, the node is less likely to be surfaced in
 the future."
   (interactive "P")
-  (let ((score (if bury
-                   org-roam-review--maturity-score-bury
-                 org-roam-review--maturity-score-revisit)))
-    (org-roam-review--update-review-buffer-entry
-     (org-roam-review--visiting-node-at-point
-       (unless (org-roam-review--skip-node-for-maturity-assignment-p)
-         (org-roam-review--update-node-srs-properties "seedling" score))))))
+  (org-roam-review--transform-selected-sections
+    (let ((score (if bury
+                     org-roam-review--maturity-score-bury
+                   org-roam-review--maturity-score-revisit)))
+      (org-roam-review--update-review-buffer-entry
+       (org-roam-review--visiting-node-at-point
+         (unless (org-roam-review--skip-node-for-maturity-assignment-p)
+           (org-roam-review--update-node-srs-properties "seedling" score)))))))
 
 ;;;###autoload
 (defun org-roam-review-set-evergreen (&optional bury)
@@ -732,13 +759,14 @@ the future."
 With prefix arg BURY, the node is less likely to be surfaced in
 the future."
   (interactive "P")
-  (let ((score (if bury
-                   org-roam-review--maturity-score-bury
-                 org-roam-review--maturity-score-ok)))
-    (org-roam-review--update-review-buffer-entry
-     (org-roam-review--visiting-node-at-point
-       (unless (org-roam-review--skip-node-for-maturity-assignment-p)
-         (org-roam-review--update-node-srs-properties "evergreen" score))))))
+  (org-roam-review--transform-selected-sections
+    (let ((score (if bury
+                     org-roam-review--maturity-score-bury
+                   org-roam-review--maturity-score-ok)))
+      (org-roam-review--update-review-buffer-entry
+       (org-roam-review--visiting-node-at-point
+         (unless (org-roam-review--skip-node-for-maturity-assignment-p)
+           (org-roam-review--update-node-srs-properties "evergreen" score)))))))
 
 (defun org-roam-review--delete-tags-and-properties (node-id)
   (let ((message-log-max))
@@ -756,16 +784,22 @@ the future."
 This deletes all the properties and tags managed by this
 package."
   (interactive)
-  (org-roam-review--update-review-buffer-entry
-   (org-roam-review--visiting-node-at-point
-     (let ((id (org-entry-get (point-min) "ID")))
-       (unless id
-         (error "No ID in buffer"))
-       (org-with-point-at (org-find-property "ID" id)
-         (org-roam-review--delete-tags-and-properties id)
-         (save-buffer))
-       (let ((title (org-roam-node-title (org-roam-node-from-id id))))
-         (message "Excluded node `%s' from reviews" title))))))
+  (let ((titles))
+    (org-roam-review--transform-selected-sections
+      (org-roam-review--update-review-buffer-entry
+       (org-roam-review--visiting-node-at-point
+         (let ((id (org-entry-get (point-min) "ID")))
+           (unless id
+             (error "No ID in buffer"))
+           (org-with-point-at (org-find-property "ID" id)
+             (org-roam-review--delete-tags-and-properties id)
+             (save-buffer))
+           (let ((title (org-roam-node-title (org-roam-node-from-id id))))
+             (push title titles))))))
+
+    (if (equal 1 (length titles))
+        (message "Excluded node `%s' from reviews" (car titles))
+      (message "Excluded %s nodes from reviews" (length titles)))))
 
 (provide 'org-roam-review)
 
