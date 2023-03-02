@@ -58,7 +58,7 @@
   :type 'boolean)
 
 (defcustom org-roam-rewrite-rename-without-confirmation-p nil
-  "Whether to ask for confirmation before updating link descriptions on node rename."
+  "Whether to ask for confirmation before updating links to renamed nodes."
   :group 'org-roam-rewrite
   :type 'boolean)
 
