@@ -408,8 +408,16 @@ but it handles file titles, tags and transclusions better."
               (with-current-buffer dest-buf
                 (org-paste-subtree)
                 (while (> (org-current-level) 1) (org-promote-subtree))
-                (save-buffer)
+
+                ;; `org-roam-promote-entire-buffer' expects an indexed node to
+                ;; exist, and the file must exist on-disk for indexing to succeed.
+                (let ((before-save-hook)
+                      (after-save-hook
+                       (lambda ()
+                         (org-id-add-location (org-roam-node-id node) dest))))
+                  (save-buffer))
                 (org-roam-promote-entire-buffer)
+
                 (let ((tags (-difference (-union (org-roam-rewrite--file-tags) tags)
                                          org-roam-rewrite-extract-excluded-tags)))
                   (org-roam-rewrite--set-file-tags tags)
