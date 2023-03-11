@@ -85,6 +85,11 @@
   :group 'org-roam-review
   :type '(list string))
 
+(defcustom org-roam-review-kill-reviewed-buffers-p t
+  "Whether to kill a buffer after it has been accepted in a review."
+  :group 'org-roam-review
+  :type 'boolean)
+
 (defface org-roam-review-instructions
   '((t
      (:inherit font-lock-comment-face)))
@@ -137,7 +142,7 @@ as the current buffer.")
 The hook is run within `org-roam-review-bury', with that node as
 the current buffer.")
 
-(defvar org-roam-review-node-processed-hook nil
+(defvar org-roam-review-node-processed-hook '(org-roam-review--update-workspace-for-completed-review)
   "Hook run whenever a node is buried or accepted in a review.
 
 The hook is run with the node as the current buffer.")
@@ -588,8 +593,6 @@ them as reviewed with `org-roam-review-accept',
 ;;; Commands for manipulating node review state.
 
 (defun org-roam-review--update-workspace-for-completed-review ()
-  (save-buffer)
-  (kill-buffer)
   (when-let* ((buf (get-buffer "*org-roam-review*")))
     (org-roam-review-display-buffer-and-select buf)))
 
@@ -683,6 +686,12 @@ Return the affected sections."
        ,@body)
      (org-roam-review--forward-to-uncommented-sibling)))
 
+(defun org-roam-review--maybe-kill-reviewed-buffer (buf)
+  (when (and org-roam-review-kill-reviewed-buffers-p (buffer-live-p buf))
+    (with-current-buffer buf
+      (save-buffer)
+      (kill-buffer))))
+
 ;;;###autoload
 (defun org-roam-review-accept ()
   "Confirm review of the current node."
@@ -694,9 +703,10 @@ Return the affected sections."
        (org-roam-review--visiting-node-at-point
          (when-let* ((maturity (org-entry-get-with-inheritance "MATURITY")))
            (org-roam-review--update-node-srs-properties maturity org-roam-review--maturity-score-ok))
-         (org-roam-review--update-workspace-for-completed-review)
-         (run-hooks 'org-roam-review-node-accepted-hook)
-         (run-hooks 'org-roam-review-node-processed-hook))))
+         (let ((buf (current-buffer)))
+           (run-hooks 'org-roam-review-node-accepted-hook)
+           (run-hooks 'org-roam-review-node-processed-hook)
+           (org-roam-review--maybe-kill-reviewed-buffer buf)))))
     (message "Node%s scheduled for future review" (if (= 1 count) "" "s"))))
 
 ;;;###autoload
@@ -710,9 +720,10 @@ Return the affected sections."
        (org-roam-review--visiting-node-at-point
          (when-let* ((maturity (org-entry-get-with-inheritance "MATURITY")))
            (org-roam-review--update-node-srs-properties maturity org-roam-review--maturity-score-bury))
-         (org-roam-review--update-workspace-for-completed-review)
-         (run-hooks 'org-roam-review-node-buried-hook)
-         (run-hooks 'org-roam-review-node-processed-hook))))
+         (let ((buf (current-buffer)))
+           (run-hooks 'org-roam-review-node-buried-hook)
+           (run-hooks 'org-roam-review-node-processed-hook)
+           (org-roam-review--maybe-kill-reviewed-buffer buf)))))
     (message "Node%s buried" (if (= 1 count) "" "s"))))
 
 (defun org-roam-review--skip-node-for-maturity-assignment-p ()
