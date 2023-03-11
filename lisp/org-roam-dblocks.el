@@ -166,6 +166,11 @@ their blocks updated automatically."
   :type '(choice (const nil)
                  (repeat :tag "Tag" (string))))
 
+(defcustom org-roam-dblocks-autoupdate-silently-p t
+  "Whether to suppress messages during the dblock update process."
+  :group 'org-roam-dblocks
+  :type 'boolean)
+
 (defconst org-roam-dblocks-names '("notes" "backlinks"))
 
 
@@ -476,13 +481,14 @@ and old content."
                         (append org-file-tags (org-get-tags)))))
 
 (defun org-roam-dblocks--update-blocks ()
-  (org-map-dblocks
-   (lambda ()
-     (when (org-roam-dblocks--update-block-at-point-p)
-       (pcase (org-element-at-point)
-         (`(dynamic-block ,plist)
-          (when (member (plist-get plist :block-name) org-roam-dblocks-names)
-            (org-update-dblock))))))))
+  (let ((message-log-max (if org-roam-dblocks-autoupdate-silently-p nil message-log-max)))
+    (org-map-dblocks
+     (lambda ()
+       (when (org-roam-dblocks--update-block-at-point-p)
+         (pcase (org-element-at-point)
+           (`(dynamic-block ,plist)
+            (when (member (plist-get plist :block-name) org-roam-dblocks-names)
+              (org-update-dblock)))))))))
 
 
 
@@ -494,7 +500,8 @@ and old content."
    (org-roam-dblocks-autoupdate-mode
     (org-roam-dblocks--update-blocks)
     (when (and (buffer-file-name) (buffer-modified-p))
-      (save-buffer))
+      (let ((message-log-max (if org-roam-dblocks-autoupdate-silently-p nil message-log-max)))
+        (save-buffer)))
     (add-hook 'before-save-hook #'org-roam-dblocks--update-blocks nil t))
    (t
     (remove-hook 'before-save-hook #'org-roam-dblocks--update-blocks))))
