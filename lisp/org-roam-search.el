@@ -207,7 +207,7 @@ QUERY is a PRCE regexp string that will be passed to ripgrep."
                       (format "(%s)" input)
                     input))))
   (let ((nodes (org-roam-search--ripgrep-for-nodes query)))
-    (org-roam-review-display-buffer-and-select
+    (display-buffer
      (org-roam-review-create-buffer
       :title (concat "Search Results: " (propertize query 'face 'org-roam-search-query))
       :placeholder "No search results"
@@ -249,7 +249,7 @@ QUERY is a PRCE regexp string that will be passed to ripgrep."
 QUERY is an `org-tags-filter'."
   (interactive (list (org-tags-filter-read "Search by tags filter (+/-): ")))
   (org-roam-review-modify-tags query t)
-  (org-roam-review-display-buffer-and-select
+  (display-buffer
    (org-roam-review-create-buffer
     :title "Tag Search Results"
     :instructions "The list below contains nodes matching the given tags."

@@ -261,7 +261,7 @@ This means titles can be restored if
 (defun org-roam-slipbox-list-notes (slipbox)
   "List nodes belonging to SLIPBOX."
   (interactive (list (org-roam-slipbox--read)))
-  (org-roam-review-display-buffer-and-select
+  (display-buffer
    (org-roam-review-create-buffer
     :title (concat "Notes for slipbox: " (propertize slipbox 'face 'org-roam-slipbox-name))
     :instructions "The nodes below are sorted by slipbox"

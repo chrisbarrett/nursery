@@ -520,12 +520,6 @@ categorised by their maturity."
     ('evergreen (cons "Evergreen 🌲" 1))
     (value value)))
 
-(defun org-roam-review-display-buffer-and-select (buf)
-  (display-buffer buf)
-  (when-let* ((win (seq-find (lambda (it) (equal buf (window-buffer it)))
-                             (window-list))))
-    (select-window win)))
-
 (defun org-roam-review-node-due-p (node)
   (when-let* ((next-review (org-roam-review-node-next-review node)))
     (ts<= next-review (ts-now))))
@@ -534,7 +528,7 @@ categorised by their maturity."
 (defun org-roam-review-list-due ()
   "List nodes that are due for review."
   (interactive)
-  (org-roam-review-display-buffer-and-select
+  (display-buffer
    (org-roam-review-create-buffer
     :title "Due Notes"
     :instructions "The nodes below are due for review.
@@ -560,7 +554,7 @@ them as reviewed with `org-roam-review-accept',
 (defun org-roam-review-list-by-maturity ()
   "List all evergreen nodes categorised by maturity."
   (interactive)
-  (org-roam-review-display-buffer-and-select
+  (display-buffer
    (org-roam-review-create-buffer
     :title "Evergreen Notes"
     :instructions "The nodes below are categorised by maturity."
@@ -582,7 +576,7 @@ them as reviewed with `org-roam-review-accept',
 (defun org-roam-review-list-recently-added ()
   "List nodes that were created recently, grouped by time."
   (interactive)
-  (org-roam-review-display-buffer-and-select
+  (display-buffer
    (org-roam-review-create-buffer
     :title "Recently Created Notes"
     :instructions "The nodes below are sorted by when they were created."
@@ -594,7 +588,7 @@ them as reviewed with `org-roam-review-accept',
 
 (defun org-roam-review--update-workspace-for-completed-review ()
   (when-let* ((buf (get-buffer "*org-roam-review*")))
-    (org-roam-review-display-buffer-and-select buf)))
+    (display-buffer buf)))
 
 (defmacro org-roam-review--visiting-node-at-point (&rest body)
   (declare (indent 0))

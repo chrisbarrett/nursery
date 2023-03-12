@@ -82,7 +82,7 @@ When called interactively, prompt the user for MAX-DEPTH."
           (short-title (substring title 0 (min (length title) org-roam-links-max-title-length)))
           (short-title (if (equal title short-title) title (concat short-title "…")))
           graph)
-    (org-roam-review-display-buffer-and-select
+    (display-buffer
      (org-roam-review-create-buffer
       :title (format "Links for “%s\”" short-title)
       :instructions "Below is the graph of links to and from the current node."
