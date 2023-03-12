@@ -248,6 +248,13 @@ A higher score means that the node will appear less frequently."
 
 ;;; Review buffers
 
+(defmacro org-roam-review--with-current-review-buffer (&rest body)
+  (declare (indent 0))
+  `(if-let* ((buf (car (org-roam-review-buffers))))
+       (with-current-buffer buf
+         ,@body)
+     (error "No review buffer")))
+
 (defun org-roam-review--daily-file-p (&optional file)
   "Test whether FILE is a daily node.
 
@@ -637,28 +644,26 @@ them as reviewed with `org-roam-review-accept',
         (run-hooks 'org-roam-review-next-node-selected-hook)))))
 
 (defun org-roam-review--update-review-buffer-entry (node)
-  (when-let* ((buf (get-buffer "*org-roam-review*")))
+  (org-roam-review--with-current-review-buffer
+    (let ((continue t)
+          (found-pos nil)
+          (id (org-roam-node-id node)))
+      (save-excursion
+        (goto-char (point-min))
+        (while (and (not found-pos) continue)
+          (if (equal id (ignore-errors (org-roam-node-id (org-roam-node-at-point))))
+              (setq continue nil
+                    found-pos (point))
+            (or (ignore-errors (magit-section-forward) t)
+                (setq continue nil)))))
 
-    (with-current-buffer buf
-      (let ((continue t)
-            (found-pos nil)
-            (id (org-roam-node-id node)))
-        (save-excursion
-          (goto-char (point-min))
-          (while (and (not found-pos) continue)
-            (if (equal id (ignore-errors (org-roam-node-id (org-roam-node-at-point))))
-                (setq continue nil
-                      found-pos (point))
-              (or (ignore-errors (magit-section-forward) t)
-                  (setq continue nil)))))
-
-        (when found-pos
-          (goto-char found-pos)
-          (when-let* ((section (magit-current-section)))
-            (when (oref section node)
-              (let ((inhibit-read-only t))
-                (put-text-property (line-beginning-position) (line-end-position) 'face 'font-lock-comment-face))
-              (magit-section-hide section))))))))
+      (when found-pos
+        (goto-char found-pos)
+        (when-let* ((section (magit-current-section)))
+          (when (oref section node)
+            (let ((inhibit-read-only t))
+              (put-text-property (line-beginning-position) (line-end-position) 'face 'font-lock-comment-face))
+            (magit-section-hide section)))))))
 
 (defmacro org-roam-review--transform-selected-sections (&rest body)
   "Execute BODY, possibly over multiple sections.
@@ -678,7 +683,8 @@ Return the affected sections."
                  (magit-section-update-highlight)))
              result))
        ,@body)
-     (org-roam-review--forward-to-uncommented-sibling)))
+     (org-roam-review--with-current-review-buffer
+       (org-roam-review--forward-to-uncommented-sibling))))
 
 (defun org-roam-review--maybe-kill-reviewed-buffer (buf)
   (when (and org-roam-review-kill-reviewed-buffers-p (buffer-live-p buf))
