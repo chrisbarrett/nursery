@@ -225,11 +225,10 @@ QUERY is a PRCE regexp string that will be passed to ripgrep."
           (pcase-dolist (`(,_file . ,group) (seq-group-by #'org-roam-node-file nodes))
             (when-let* ((top-node (-max-by (-on #'< #'org-roam-node-level)
                                            group) )
-                        (node-id (org-roam-node-id top-node))
-                        (heading (org-link-display-format (org-roam-node-title top-node))))
+                        (node-id (org-roam-node-id top-node)))
               (magit-insert-section section (org-roam-node-section node-id t)
                 (magit-insert-heading
-                  (concat (propertize heading 'font-lock-face 'magit-section-heading)
+                  (concat (funcall org-roam-review-title-formatter top-node)
                           " "
                           (when-let* ((mat (org-roam-review-node-maturity top-node)))
                             (alist-get mat org-roam-review-maturity-emoji-alist nil nil #'equal))))

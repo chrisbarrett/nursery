@@ -90,6 +90,13 @@
   :group 'org-roam-review
   :type 'boolean)
 
+(defcustom org-roam-review-title-formatter #'org-roam-review-default-title-formatter
+  "Function that renders node title in review buffers.
+
+It must take a node and return a (possibly propertized) string."
+  :group 'org-roam-review
+  :type 'function)
+
 (defface org-roam-review-instructions
   '((t
      (:inherit font-lock-comment-face)))
@@ -364,11 +371,14 @@ When called with a `C-u' prefix arg, clear the current filter."
       (insert formatted-preview)
       (insert "\n\n"))))
 
+(defun org-roam-review-default-title-formatter (node)
+  (propertize (org-roam-node-title node)
+              'font-lock-face 'magit-section-secondary-heading))
+
 (defun org-roam-review--insert-node (node)
   (atomic-change-group
     (magit-insert-section section (org-roam-node-section (org-roam-node-id node) t)
-      (magit-insert-heading (propertize (org-roam-node-title node)
-                                        'font-lock-face 'magit-section-secondary-heading))
+      (magit-insert-heading (funcall org-roam-review-title-formatter node))
       (oset section node node)
       ;; KLUDGE: Mofified macro-expansion of `magit-insert-section-body' that
       ;; avoids unsetting the parent section's keymap.

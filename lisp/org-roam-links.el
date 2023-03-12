@@ -110,12 +110,7 @@ When called interactively, prompt the user for MAX-DEPTH."
                                (if (equal id start-node-id)
                                    (magit-cancel-section)
                                  (let* ((seen-p (gethash id seen-ids))
-                                        (face
-                                         (cond
-                                          ((zerop depth) 'magit-section-heading)
-                                          (seen-p 'font-lock-comment-face)
-                                          (t 'org-roam-title)))
-                                        (heading (propertize (org-roam-node-title node) 'font-lock-face face)))
+                                        (heading (funcall org-roam-review-title-formatter node)))
                                    (magit-insert-heading (org-roam-review-indent-string heading depth))
                                    (unless seen-p
                                      (puthash id t seen-ids)
