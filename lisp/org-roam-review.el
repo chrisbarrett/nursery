@@ -640,8 +640,7 @@ them as reviewed with `org-roam-review-accept',
         (setq found (not (equal 'font-lock-comment-face (get-text-property (point) 'face))))
         (let ((unchanged (equal (magit-current-section) section)))
           (setq stop (or found unchanged))))
-      (when found
-        (run-hooks 'org-roam-review-next-node-selected-hook)))))
+      found)))
 
 (defun org-roam-review--update-review-buffer-entry (node)
   (org-roam-review--with-current-review-buffer
@@ -684,7 +683,8 @@ Return the affected sections."
              result))
        ,@body)
      (org-roam-review--with-current-review-buffer
-       (org-roam-review--forward-to-uncommented-sibling))))
+       (when (org-roam-review--forward-to-uncommented-sibling)
+         (run-hooks 'org-roam-review-next-node-selected-hook)))))
 
 (defun org-roam-review--maybe-kill-reviewed-buffer (buf)
   (when (and org-roam-review-kill-reviewed-buffers-p (buffer-live-p buf))
