@@ -118,7 +118,7 @@ which are compared using `plist-equal' recursively."
   (cl-assert (listp required-keys))
   (cl-assert (seq-every-p #'keywordp required-keys))
   (cl-assert (seq-every-p #'keywordp all-keys))
-  `(defsubst ,(plisty--validator-for-type type) (value &optional strict)
+  `(defun ,(plisty--validator-for-type type) (value &optional strict)
      (cl-assert (listp value) t "Expected a plist" )
      (let ((required-keys ',required-keys)
            (all-keys ',all-keys)
@@ -134,7 +134,8 @@ which are compared using `plist-equal' recursively."
          (cl-assert (null (seq-difference keys all-keys))
                     t
                     "Unexpected additional keys: %s"
-                    (seq-difference keys all-keys))))))
+                    (seq-difference keys all-keys)))
+       value)))
 
 (defun plisty--pred-accessor-name (type keyword)
   (intern (format "%s-%s" type (string-remove-prefix ":" (symbol-name keyword)))))
