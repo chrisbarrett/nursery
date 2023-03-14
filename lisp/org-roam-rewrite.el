@@ -63,6 +63,15 @@
   :group 'org-roam-rewrite
   :type 'boolean)
 
+(defcustom org-roam-rewrite-backlink-transformer #'org-roam-rewrite-backlink-transformer
+  "Function to transform link data used to populate links in rewrites.
+
+It should take a single argument, a plist conforming to
+`org-roam-rewrite-backlink-transformer-args', and return a plist
+conforming to `org-roam-rewrite-backlink-transformer-result'."
+  :group 'org-roam-rewrite
+  :type 'function)
+
 (defcustom org-roam-rewrite-node-extracted-hook nil
   "Hook run after a node has been extracted successfully to a new file.
 
@@ -125,25 +134,70 @@ It is called with the renamed node as the current buffer."
 
 
 
-(defun org-roam-rewrite--edit-backlinks (current-node new-node new-title)
-  (let* ((new-id (org-roam-node-id new-node))
-         (replacement (org-link-make-string (concat "id:" new-id) new-title))
-         (backlinks-by-file
+(plisty-define org-roam-rewrite-backlink-transformer-args
+  :required (:prev-node :new-node
+             :prev-id :prev-desc
+             :new-id :new-desc))
+
+(plisty-define org-roam-rewrite-backlink-transformer-result
+  :required (:id :desc))
+
+(defun org-roam-rewrite-backlink-transformer (args-plist)
+  (cl-labels ((normalise
+               (str)
+               (replace-regexp-in-string (rx (+ (any space "\n"))) ""
+                                         (downcase str))))
+    (-let* (((&plist :prev-node :new-id :new-desc :prev-desc)
+             args-plist)
+
+            (norm-titles (cons (normalise (org-roam-node-title prev-node))
+                               (seq-map 'normalise (org-roam-node-aliases prev-node))))
+
+            (desc-customised-p
+             (not (seq-contains-p norm-titles (normalise prev-desc))))
+
+            (updated-desc
+             (if desc-customised-p prev-desc new-desc)))
+
+      (list :id new-id :desc updated-desc))))
+
+(defun org-roam-rewrite--parse-link-at-point ()
+  (save-match-data
+    (when (looking-at org-link-any-re)
+      (-let* ((beg (match-beginning 0))
+              (end (match-end 0))
+              (str (buffer-substring-no-properties beg end))
+              (((_link (&plist :path id) desc)) (org-element-parse-secondary-string str '(link))))
+        (list :beg beg :end end :id id :desc (substring-no-properties desc))))))
+
+(defun org-roam-rewrite--edit-backlinks (prev-node new-node new-desc)
+  (let* ((backlinks-by-file
           (seq-group-by (-compose #'org-roam-node-file #'org-roam-backlink-source-node)
-                        (org-roam-backlinks-get current-node))))
+                        (org-roam-backlinks-get prev-node))))
     (pcase-dolist (`(,file . ,backlinks) backlinks-by-file)
       (with-temp-buffer
         (insert-file-contents file)
         (dolist (backlink (seq-sort-by #'org-roam-backlink-point #'> backlinks))
           (goto-char (org-roam-backlink-point backlink))
-          (save-match-data
-            ;; This *shouldn't* happen, but I've seen it a few times and I'm not
-            ;; sure why.
-            (when (org-at-property-drawer-p)
-              (error "Unexpected attempt to edit property drawer"))
+          (-when-let* (((&plist :beg :end :id prev-id :desc prev-desc)
+                        (org-roam-rewrite--parse-link-at-point))
 
-            (when (looking-at org-link-any-re)
-              (replace-match replacement t t))))
+                       (transformed
+                        (org-roam-rewrite-backlink-transformer-result-assert
+                         (funcall org-roam-rewrite-backlink-transformer
+                                  (org-roam-rewrite-backlink-transformer-args-create
+                                   :prev-node prev-node
+                                   :new-node new-node
+                                   :prev-id prev-id
+                                   :prev-desc prev-desc
+                                   :new-id (org-roam-node-id new-node)
+                                   :new-desc new-desc))))
+
+                       ((&plist :desc new-desc :id new-id) transformed))
+
+            (replace-region-contents beg end (lambda ()
+                                               (org-link-make-string (concat "id:" new-id) new-desc)))))
+
         (write-region (point-min) (point-max) file)))
 
     (pcase-dolist (`(,file . ,_) backlinks-by-file)
@@ -201,7 +255,8 @@ It is called with the renamed node as the current buffer."
 NODE is the node to update.
 
 NEW-TITLE is the new title to use. All backlinks will have their
-descriptions updated to this value."
+descriptions updated according to the behaviour of the function
+bound to variable `org-roam-rewrite-backlink-transformer'."
   (interactive (let ((node (or (org-roam-node-at-point) (org-roam-node-read))))
                  (list node (read-string "New title: " (org-roam-node-title node)))))
   (org-roam-node-visit node)
@@ -209,7 +264,7 @@ descriptions updated to this value."
   (org-roam-rewrite--update-node-title node new-title)
   (let* ((node-id (org-roam-node-id node))
          ;; Get an updated node with the new title.
-         (node (org-roam-node-from-id node-id))
+         (updated-node (org-roam-node-from-id node-id))
          (backlinks (org-roam-backlinks-get node)))
     (cond
      ((null backlinks)
@@ -219,7 +274,10 @@ descriptions updated to this value."
                  (y-or-n-p (format "Modify %s backlink description%s? "
                                    (length backlinks)
                                    (if (= 1 (length backlinks)) "" "s"))))
-             (org-roam-rewrite--edit-backlinks node node (org-roam-rewrite--node-formatted-title node new-title))
+
+             (let ((new-desc (org-roam-rewrite--node-formatted-title updated-node new-title)))
+               (org-roam-rewrite--edit-backlinks node updated-node new-desc))
+
              (message "Rewrote %s link%s to node."
                       (length backlinks)
                       (if (= 1 (length backlinks)) "" "s")))
