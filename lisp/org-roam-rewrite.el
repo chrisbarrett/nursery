@@ -34,6 +34,7 @@
 (require 'f)
 (require 'org)
 (require 'org-roam)
+(require 'plisty)
 
 (require 'org-transclusion nil t)
 
@@ -124,11 +125,12 @@ It is called with the renamed node as the current buffer."
 
 
 
-(defun org-roam-rewrite--edit-backlinks (backlinks new-id new-title)
-  (let ((replacement (org-link-make-string (concat "id:" new-id) new-title))
-        (backlinks-by-file
-         (seq-group-by (-compose #'org-roam-node-file #'org-roam-backlink-source-node)
-                       backlinks)))
+(defun org-roam-rewrite--edit-backlinks (current-node new-node new-title)
+  (let* ((new-id (org-roam-node-id new-node))
+         (replacement (org-link-make-string (concat "id:" new-id) new-title))
+         (backlinks-by-file
+          (seq-group-by (-compose #'org-roam-node-file #'org-roam-backlink-source-node)
+                        (org-roam-backlinks-get current-node))))
     (pcase-dolist (`(,file . ,backlinks) backlinks-by-file)
       (with-temp-buffer
         (insert-file-contents file)
@@ -217,7 +219,7 @@ descriptions updated to this value."
                  (y-or-n-p (format "Modify %s backlink description%s? "
                                    (length backlinks)
                                    (if (= 1 (length backlinks)) "" "s"))))
-             (org-roam-rewrite--edit-backlinks backlinks node-id (org-roam-rewrite--node-formatted-title node new-title))
+             (org-roam-rewrite--edit-backlinks node node (org-roam-rewrite--node-formatted-title node new-title))
              (message "Rewrote %s link%s to node."
                       (length backlinks)
                       (if (= 1 (length backlinks)) "" "s")))
@@ -260,7 +262,7 @@ LINK-DESC is the description to use for the updated links."
                         (if (= 1 (length backlinks)) "" "s")
                         (org-roam-node-title from)
                         link-desc))
-      (org-roam-rewrite--edit-backlinks backlinks (org-roam-node-id to) link-desc)
+      (org-roam-rewrite--edit-backlinks from to link-desc)
       (when (y-or-n-p "Rewrite completed. Delete node? ")
         (org-roam-rewrite--delete-node-kill-buffer from)))
      (t
