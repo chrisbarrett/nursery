@@ -49,6 +49,7 @@
 ;;        "g r" 'org-roam-review-refresh)
 ;;       (:keymaps 'org-mode-map
 ;;        "C-c r r" '(org-roam-review-accept :wk "accept")
+;;        "C-c r f" '(org-roam-review-forgot :wk "forgot")
 ;;        "C-c r u" '(org-roam-review-bury :wk "bury")
 ;;        "C-c r x" '(org-roam-review-set-excluded :wk "set excluded")
 ;;        "C-c r b" '(org-roam-review-set-budding :wk "set budding")
@@ -141,6 +142,12 @@ It must take a node and return a (possibly propertized) string."
   "Hook run after marking a node as successfully reviewed.
 
 The hook is run within `org-roam-review-accept', with that node
+as the current buffer.")
+
+(defvar org-roam-review-node-forgotten-hook nil
+  "Hook run after marking a node as forgotten.
+
+The hook is run within `org-roam-review-forgot', with that node
 as the current buffer.")
 
 (defvar org-roam-review-node-buried-hook nil
@@ -722,6 +729,23 @@ Return the affected sections."
                       (org-roam-review--maybe-kill-reviewed-buffer buf)))))
         (org-roam-review--update-review-buffer-entry node)))
     (message "Node%s scheduled for future review" (if (= 1 count) "" "s"))))
+
+;;;###autoload
+(defun org-roam-review-forgot ()
+  "Mark the current node as requiring review again soon."
+  (interactive)
+  (let ((count 0))
+    (org-roam-review--transform-selected-sections
+      (cl-incf count)
+      (let ((node (org-roam-review--visiting-node-at-point
+                    (when-let* ((maturity (org-entry-get-with-inheritance "MATURITY")))
+                      (org-roam-review--update-node-srs-properties maturity org-roam-review--maturity-score-revisit))
+                    (let ((buf (current-buffer)))
+                      (run-hooks 'org-roam-review-node-forgotten-hook)
+                      (run-hooks 'org-roam-review-node-processed-hook)
+                      (org-roam-review--maybe-kill-reviewed-buffer buf)))))
+        (org-roam-review--update-review-buffer-entry node)))
+    (message "Node%s scheduled for review again soon" (if (= 1 count) "" "s"))))
 
 ;;;###autoload
 (defun org-roam-review-bury ()
