@@ -51,6 +51,7 @@
 ;;        "C-c r r" '(org-roam-review-accept :wk "accept")
 ;;        "C-c r f" '(org-roam-review-forgot :wk "forgot")
 ;;        "C-c r u" '(org-roam-review-bury :wk "bury")
+;;        "C-c r m" '(org-roam-review-set-memorise :wk "set memorise")
 ;;        "C-c r x" '(org-roam-review-set-excluded :wk "set excluded")
 ;;        "C-c r b" '(org-roam-review-set-budding :wk "set budding")
 ;;        "C-c r s" '(org-roam-review-set-seedling :wk "set seedling")
@@ -207,29 +208,34 @@ QUALITY is a number 0-5 inclusive.
       (org-set-property "NEXT_REVIEW" next-review)
       next-review)))
 
-(defun org-roam-review--update-node-srs-properties (maturity score)
+(defun org-roam-review--update-node-srs-properties (score &optional maturity)
   "Set the MATURITY and updated SCORE for a node.
 
 A higher score means that the node will appear less frequently."
-  (cl-assert (member maturity org-roam-review-maturity-values))
+  (cl-assert (or (null maturity) (member maturity org-roam-review-maturity-values)))
   (cl-assert (derived-mode-p 'org-mode))
-  (when (org-roam-review--daily-file-p (buffer-file-name))
+  (when (and maturity (org-roam-review--daily-file-p (buffer-file-name)))
     (user-error "Cannot set maturity on daily file"))
   (let ((id (org-entry-get (point-min) "ID")))
     (unless id
-      (error "Not visiting an Evergreen Note--no ID property found"))
+      (error "Not visiting an org-roam node--no ID property found"))
     (org-with-point-at (org-find-property "ID" id)
       (atomic-change-group
         (let ((next-review (org-roam-review--update-next-review score)))
           (ignore-errors
             (org-roam-tag-remove org-roam-review-maturity-values))
-          (org-roam-tag-add (list maturity))
 
-          (org-set-property "MATURITY" maturity)
+          (when maturity
+            (org-roam-tag-add (list maturity))
+            (org-set-property "MATURITY" maturity))
+
           (org-set-property "LAST_REVIEW" (org-format-time-string "[%Y-%m-%d %a]"))
 
           (save-buffer)
-          (message "Maturity set to '%s'. Review scheduled for %s" maturity next-review))))))
+
+          (if maturity
+              (message "Maturity set to '%s'. Review scheduled for %s" maturity next-review)
+            (message "Review scheduled for %s" next-review)))))))
 
 (defun org-roam-review-node-ignored-p (node &optional filter-plist)
   (let* ((filter-plist (or filter-plist org-tags-filter-last-value))
@@ -538,11 +544,13 @@ categorised by their maturity."
     (org-roam-review-list-due)))
 
 (defun org-roam-review--maturity-header (node)
-  (pcase (org-roam-review-node-maturity node)
-    ('seedling (cons "Seedling 🌱" 3))
-    ('budding (cons "Budding 🪴" 2))
-    ('evergreen (cons "Evergreen 🌲" 1))
-    (value value)))
+  (if (member "memo" (org-roam-node-tags node))
+      (cons "Memorise 💭" 0)
+    (pcase (org-roam-review-node-maturity node)
+      ('seedling (cons "Seedling 🌱" 3))
+      ('budding (cons "Budding 🪴" 2))
+      ('evergreen (cons "Evergreen 🌲" 1))
+      (value value))))
 
 (defun org-roam-review-node-due-p (node)
   (when-let* ((next-review (org-roam-review-node-next-review node)))
@@ -721,8 +729,8 @@ Return the affected sections."
     (org-roam-review--transform-selected-sections
       (cl-incf count)
       (let ((node (org-roam-review--visiting-node-at-point
-                    (when-let* ((maturity (org-entry-get-with-inheritance "MATURITY")))
-                      (org-roam-review--update-node-srs-properties maturity org-roam-review--maturity-score-ok))
+                    (org-roam-review--update-node-srs-properties org-roam-review--maturity-score-ok
+                                                                 (org-entry-get-with-inheritance "MATURITY"))
                     (let ((buf (current-buffer)))
                       (run-hooks 'org-roam-review-node-accepted-hook)
                       (run-hooks 'org-roam-review-node-processed-hook)
@@ -738,8 +746,8 @@ Return the affected sections."
     (org-roam-review--transform-selected-sections
       (cl-incf count)
       (let ((node (org-roam-review--visiting-node-at-point
-                    (when-let* ((maturity (org-entry-get-with-inheritance "MATURITY")))
-                      (org-roam-review--update-node-srs-properties maturity org-roam-review--maturity-score-revisit))
+                    (org-roam-review--update-node-srs-properties org-roam-review--maturity-score-revisit
+                                                                 (org-entry-get-with-inheritance "MATURITY"))
                     (let ((buf (current-buffer)))
                       (run-hooks 'org-roam-review-node-forgotten-hook)
                       (run-hooks 'org-roam-review-node-processed-hook)
@@ -755,8 +763,8 @@ Return the affected sections."
     (org-roam-review--transform-selected-sections
       (cl-incf count)
       (let ((node (org-roam-review--visiting-node-at-point
-                    (when-let* ((maturity (org-entry-get-with-inheritance "MATURITY")))
-                      (org-roam-review--update-node-srs-properties maturity org-roam-review--maturity-score-bury))
+                    (org-roam-review--update-node-srs-properties org-roam-review--maturity-score-bury
+                                                                 (org-entry-get-with-inheritance "MATURITY"))
                     (let ((buf (current-buffer)))
                       (run-hooks 'org-roam-review-node-buried-hook)
                       (run-hooks 'org-roam-review-node-processed-hook)
@@ -768,6 +776,20 @@ Return the affected sections."
   (org-with-wide-buffer
    (or (org-roam-review--daily-file-p (buffer-file-name))
        (seq-intersection org-roam-review-ignored-tags (org-roam-review--tags-at-pt)))))
+
+;;;###autoload
+(defun org-roam-review-set-memorise ()
+  "Set the current node as a 'memorise' node.
+
+It will show up in a dedicated section of the review buffer when it's due."
+  (interactive)
+  (org-roam-review--transform-selected-sections
+    (let ((node (org-roam-review--visiting-node-at-point
+                  (org-roam-tag-remove org-roam-review-maturity-values)
+                  (org-roam-tag-add (list "memo"))
+                  (org-delete-property "MATURITY")
+                  (org-roam-review--update-node-srs-properties org-roam-review--maturity-score-revisit))))
+      (org-roam-review--update-review-buffer-entry node))))
 
 ;;;###autoload
 (defun org-roam-review-set-budding (&optional bury)
@@ -782,7 +804,7 @@ the future."
                     org-roam-review--maturity-score-ok))
            (node (org-roam-review--visiting-node-at-point
                    (unless (org-roam-review--skip-node-for-maturity-assignment-p)
-                     (org-roam-review--update-node-srs-properties "budding" score)))))
+                     (org-roam-review--update-node-srs-properties score "budding")))))
       (org-roam-review--update-review-buffer-entry node))))
 
 ;;;###autoload
@@ -798,7 +820,7 @@ the future."
                     org-roam-review--maturity-score-revisit))
            (node (org-roam-review--visiting-node-at-point
                    (unless (org-roam-review--skip-node-for-maturity-assignment-p)
-                     (org-roam-review--update-node-srs-properties "seedling" score)))))
+                     (org-roam-review--update-node-srs-properties score "seedling")))))
       (org-roam-review--update-review-buffer-entry node))))
 
 ;;;###autoload
@@ -814,7 +836,7 @@ the future."
                     org-roam-review--maturity-score-ok))
            (node (org-roam-review--visiting-node-at-point
                    (unless (org-roam-review--skip-node-for-maturity-assignment-p)
-                     (org-roam-review--update-node-srs-properties "evergreen" score)))))
+                     (org-roam-review--update-node-srs-properties score "evergreen")))))
       (org-roam-review--update-review-buffer-entry node))))
 
 (defun org-roam-review--delete-tags-and-properties (node-id)
