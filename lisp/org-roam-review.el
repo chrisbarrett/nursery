@@ -180,7 +180,7 @@ review is automatically opened, where available.")
 ;; We parse & store a number of properties on nodes to track review state.
 
 (defvar org-roam-review--maturity-score-revisit 1)
-(defvar org-roam-review--maturity-score-ok 3)
+(defvar org-roam-review--maturity-score-ok 4)
 (defvar org-roam-review--maturity-score-bury 5)
 
 (defun org-roam-review--update-next-review (quality)
