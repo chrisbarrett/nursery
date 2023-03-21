@@ -640,15 +640,14 @@ them as reviewed with `org-roam-review-accept',
        (error "Invalid context for visiting node")))
      node))
 
-(defun org-roam-review--in-review-session-p ()
+(defun org-roam-review--in-multiwindow-session-p ()
   (and (< 1 (length (window-list)))
        (seq-find (lambda (it) (equal (get-buffer "*org-roam-review*") (window-buffer it)))
                  (window-list))))
 
 (defun org-roam-review-open-node-if-in-review-session ()
-  (if (org-roam-review--in-review-session-p)
-      (org-roam-node-visit (org-roam-node-at-point))
-    (magit-section-show (magit-current-section))))
+  (when (org-roam-review--in-multiwindow-session-p)
+    (org-roam-node-visit (org-roam-node-at-point))))
 
 (defun org-roam-review--forward-to-uncommented-sibling ()
   (ignore-errors
