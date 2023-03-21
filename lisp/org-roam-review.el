@@ -784,7 +784,8 @@ It will show up in a dedicated section of the review buffer when it's due."
   (interactive)
   (org-roam-review--transform-selected-sections
     (let ((node (org-roam-review--visiting-node-at-point
-                  (org-roam-tag-remove org-roam-review-maturity-values)
+                  (ignore-errors
+                    (org-roam-tag-remove org-roam-review-maturity-values))
                   (org-roam-tag-add (list "memo"))
                   (org-delete-property "MATURITY")
                   (org-roam-review--update-node-srs-properties org-roam-review--maturity-score-revisit))))
