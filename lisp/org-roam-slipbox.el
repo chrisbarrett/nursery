@@ -126,7 +126,12 @@ tag applied."
   "Return the slipbox a NODE belongs to.
 
 See also: `org-roam-slipbox-default'."
-  (org-roam-slipbox-from-file (org-roam-node-file node)))
+  (org-roam-slipbox-from-file
+   ;; HACK: Work around org-roam-node-file being
+   ;; nil during capture sequence.
+   (if org-roam-capture--node
+       (expand-file-name ".placeholder")
+     (org-roam-node-file node))))
 
 (defun org-roam-slipbox--rename-file-without-git (from to)
   "Move file FROM to TO, updating the file's buffer if open.
