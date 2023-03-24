@@ -647,7 +647,8 @@ them as reviewed with `org-roam-review-accept',
 
 (defun org-roam-review-open-node-if-in-review-session ()
   (when (org-roam-review--in-multiwindow-session-p)
-    (org-roam-node-visit (org-roam-node-at-point))))
+    (when-let* ((node (org-roam-node-at-point)))
+      (org-roam-node-visit node))))
 
 (defun org-roam-review--forward-to-uncommented-sibling ()
   (ignore-errors
