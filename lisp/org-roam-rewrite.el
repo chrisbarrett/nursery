@@ -72,6 +72,28 @@ conforming to `org-roam-rewrite-backlink-transformer-result'."
   :group 'org-roam-rewrite
   :type 'function)
 
+(defcustom org-roam-rewrite-backlink-modified-functions nil
+  "Hook function run after a backlink is modified.
+
+It is called with the renamed link at point, and is passed two arguments:
+
+1. a plist containing information about the link before and after
+   the rename, but before the link transformer has possibly made
+   modifications. It conforms to
+   `org-roam-rewrite-backlink-transformer-args'.
+
+2. a plist containing the data used to construct the new link. It
+   conforms to `org-roam-rewrite-backlink-transformer-result'."
+  :group 'org-roam-rewrite
+  :type 'hook)
+
+(defcustom org-roam-rewrite-backlinks-modified-in-file-functions nil
+  "Hook run after processing backlinks in a file caused modifications.
+
+It is called with a single argument: the file name that was modified."
+  :group 'org-roam-rewrite
+  :type 'hook)
+
 (defcustom org-roam-rewrite-node-extracted-hook nil
   "Hook run after a node has been extracted successfully to a new file.
 
@@ -176,29 +198,36 @@ It is called with the renamed node as the current buffer."
                         (org-roam-backlinks-get prev-node))))
     (pcase-dolist (`(,file . ,backlinks) backlinks-by-file)
       (with-temp-buffer
-        (insert-file-contents file)
-        (dolist (backlink (seq-sort-by #'org-roam-backlink-point #'> backlinks))
-          (goto-char (org-roam-backlink-point backlink))
-          (-when-let* (((&plist :beg :end :id prev-id :desc prev-desc)
-                        (org-roam-rewrite--parse-link-at-point))
+        (let ((modified-p))
 
-                       (transformed
-                        (org-roam-rewrite-backlink-transformer-result-assert
-                         (funcall org-roam-rewrite-backlink-transformer
-                                  (org-roam-rewrite-backlink-transformer-args-create
-                                   :prev-node prev-node
-                                   :new-node new-node
-                                   :prev-id prev-id
-                                   :prev-desc prev-desc
-                                   :new-id (org-roam-node-id new-node)
-                                   :new-desc new-desc))))
+          (insert-file-contents file)
+          (dolist (backlink (seq-sort-by #'org-roam-backlink-point #'> backlinks))
+            (goto-char (org-roam-backlink-point backlink))
+            (-when-let* (((&plist :beg :end :id prev-id :desc prev-desc)
+                          (org-roam-rewrite--parse-link-at-point))
 
-                       ((&plist :desc new-desc :id new-id) transformed))
+                         (transformer-args
+                          (org-roam-rewrite-backlink-transformer-args-create
+                           :prev-node prev-node
+                           :new-node new-node
+                           :prev-id prev-id
+                           :prev-desc prev-desc
+                           :new-id (org-roam-node-id new-node)
+                           :new-desc new-desc))
+                         (transformed
+                          (org-roam-rewrite-backlink-transformer-result-assert
+                           (funcall org-roam-rewrite-backlink-transformer transformer-args)))
 
-            (replace-region-contents beg end (lambda ()
-                                               (org-link-make-string (concat "id:" new-id) new-desc)))))
+                         ((&plist :desc new-desc :id new-id) transformed))
 
-        (write-region (point-min) (point-max) file)))
+              (replace-region-contents beg end (lambda ()
+                                                 (org-link-make-string (concat "id:" new-id) new-desc)))
+              (setq modified-p t)
+              (run-hook-with-args 'org-roam-rewrite-backlink-modified-functions transformer-args transformed)))
+
+          (write-region (point-min) (point-max) file)
+          (when modified-p
+            (run-hook-with-args 'org-roam-rewrite-backlinks-modified-in-file-functions file)))))
 
     (pcase-dolist (`(,file . ,_) backlinks-by-file)
       (when-let* ((buf (find-buffer-visiting file)))
