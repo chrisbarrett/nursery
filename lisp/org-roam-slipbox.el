@@ -63,6 +63,7 @@
 
 (require 'f)
 (require 'magit)
+(require 'org-capture-detect)
 (require 'org-roam)
 (require 'org-roam-review)
 (require 'org-roam-rewrite)
@@ -242,7 +243,7 @@ This means titles can be restored if
   ;; Save the default buffer identification settings.
   (setq org-roam-slipbox--original-buffer-identification mode-line-buffer-identification)
 
-  (unless org-inhibit-startup
+  (unless (or org-inhibit-startup (org-capture-detect))
     (org-roam-slipbox-update-buffer-identification)
     (add-hook 'after-save-hook #'org-roam-slipbox-update-buffer-identification nil t)))
 
