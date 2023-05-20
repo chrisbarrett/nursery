@@ -60,12 +60,14 @@
 ;;; Code:
 
 (require 'dash)
-(require 'org-tags-filter)
 (require 'org-drill)
-(require 'org-roam-node)
 (require 'org-roam-dailies)
+(require 'org-roam-node)
+(require 'org-tags-filter)
 (require 'plisty)
 (require 'ts)
+
+(declare-function org-roam-slipbox-refile "org-roam-slipbox")
 
 (defgroup org-roam-review nil
   "Extends org-roam with spaced-repetition review of nodes."
@@ -98,6 +100,15 @@
 It must take a node and return a (possibly propertized) string."
   :group 'org-roam-review
   :type 'function)
+
+(defcustom org-roam-review-memo-slipbox nil
+  "A slipbox to save memo notes to.
+
+If set, marking a node as a memo note with
+`org-roam-review-set-memorise' will also refile."
+  :group 'org-roam-review
+  :type '(choice (string :tag "Slipbox name")
+                 (const :tag "none" nil)))
 
 (defface org-roam-review-instructions
   '((t
@@ -790,7 +801,10 @@ It will show up in a dedicated section of the review buffer when it's due."
                   (org-roam-tag-add (list "memo"))
                   (org-delete-property "MATURITY")
                   (org-roam-review--update-node-srs-properties org-roam-review--maturity-score-revisit))))
-      (org-roam-review--update-review-buffer-entry node))))
+      (org-roam-review--update-review-buffer-entry node)
+      (when org-roam-review-memo-slipbox
+        (unless (equal org-roam-review-memo-slipbox (org-roam-node-slipbox node))
+          (org-roam-slipbox-refile node org-roam-review-memo-slipbox))))))
 
 ;;;###autoload
 (defun org-roam-review-set-budding (&optional bury)
