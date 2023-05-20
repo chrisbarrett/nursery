@@ -280,7 +280,7 @@ A higher score means that the node will appear less frequently."
 
 If FILE is not given, checks the current buffer.
 
-This is a wrapper that makes sure org-roam-directory is well-formed.
+This is a wrapper that makes sure `org-roam-directory' is well-formed.
 
 See:
 https://github.com/org-roam/org-roam/issues/2032"
