@@ -229,7 +229,7 @@ A higher score means that the node will appear less frequently."
             (org-roam-tag-add (list maturity))
             (org-set-property "MATURITY" maturity))
 
-          (org-set-property "LAST_REVIEW" (org-format-time-string "[%Y-%m-%d %a]"))
+          (org-set-property "LAST_REVIEW" (format-time-string "[%Y-%m-%d %a]"))
 
           (save-buffer)
 
