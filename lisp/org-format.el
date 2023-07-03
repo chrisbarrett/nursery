@@ -53,6 +53,11 @@ Only applies to level-1 headings in the document."
   :group 'org-format
   :type 'integer)
 
+(defcustom org-format-align-all-tables t
+  "Whether to align tables on save."
+  :group 'org-format
+  :type 'boolean)
+
 
 
 (defun org-format--ensure-empty-lines (n)
@@ -87,53 +92,63 @@ Only applies to level-1 headings in the document."
   (when (looking-at "^[ \t]*\n\\'")
     (delete-region (point) (point-max))))
 
-(defun org-format-all-headings ()
-  "Ensure that blank lines exist between headings and their contents."
+(defun org-format--headings (scope)
+  (let ((seen-first-heading-p))
+    (org-map-entries (lambda ()
+                       ;; Widen so we can see space preceding the current
+                       ;; headline.
+                       (org-with-wide-buffer
+                        (let* ((level (car (org-heading-components)))
+                               (headline-spacing (cond
+                                                  ((and (equal 1 level) (not seen-first-heading-p))
+                                                   (setq seen-first-heading-p t)
+                                                   org-format-blank-lines-before-first-heading)
+                                                  ((equal 1 level)
+                                                   org-format-blank-lines-before-level-1-headings)
+                                                  (t
+                                                   org-format-blank-lines-before-subheadings))))
+                          (org-format--ensure-empty-lines headline-spacing)))
+
+                       (unless (and (fboundp 'org-transclusion-within-transclusion-p)
+                                    (org-transclusion-within-transclusion-p))
+                         (forward-line 1)
+                         (org-format--delete-blank-lines)
+                         (org-format--ensure-empty-lines org-format-blank-lines-before-meta)
+                         (org-end-of-meta-data t)
+                         (org-format--ensure-empty-lines org-format-blank-lines-before-content)))
+                     t
+                     scope)))
+
+(defun org-format--transclusions ()
+  (while (search-forward-regexp (rx bol "#+transclude:") nil t)
+    (save-excursion
+      (unless (search-forward ":only-content" (line-end-position) t)
+        (goto-char (line-beginning-position))
+        (org-format--ensure-empty-lines org-format-blank-lines-before-subheadings)))))
+
+(defun org-format-buffer ()
+  "Format the current `org-mode' buffer."
   (interactive)
   (unless (org-capture-detect)
     (let ((scope (if (org-format--in-archived-heading-p)
                      ;; archive files can be enormous--just format the heading at
                      ;; point after archiving.
                      'tree
-                   'file))
-          (seen-first-heading-p))
-      (org-map-entries (lambda ()
-                         ;; Widen so we can see space preceding the current
-                         ;; headline.
-                         (org-with-wide-buffer
-                          (let* ((level (car (org-heading-components)))
-                                 (headline-spacing (cond
-                                                    ((and (equal 1 level) (not seen-first-heading-p))
-                                                     (setq seen-first-heading-p t)
-                                                     org-format-blank-lines-before-first-heading)
-                                                    ((equal 1 level)
-                                                     org-format-blank-lines-before-level-1-headings)
-                                                    (t
-                                                     org-format-blank-lines-before-subheadings))))
-                            (org-format--ensure-empty-lines headline-spacing)))
-
-                         (unless (and (fboundp 'org-transclusion-within-transclusion-p)
-                                      (org-transclusion-within-transclusion-p))
-                           (forward-line 1)
-                           (org-format--delete-blank-lines)
-                           (org-format--ensure-empty-lines org-format-blank-lines-before-meta)
-                           (org-end-of-meta-data t)
-                           (org-format--ensure-empty-lines org-format-blank-lines-before-content)))
-                       t
-                       scope)
-
+                   'file)))
       (org-with-wide-buffer
+
+       (when org-format-align-all-tables
+         (org-table-map-tables #'org-table-align t))
+
+       (org-format--headings scope)
+
        ;; Clean up trailing whitespace.
        (goto-char (point-max))
        (org-format--delete-blank-lines)
 
        ;; Format transcluded headings as if they were really there.
        (goto-char (point-min))
-       (while (search-forward-regexp (rx bol "#+transclude:") nil t)
-         (save-excursion
-           (unless (search-forward ":only-content" (line-end-position) t)
-             (goto-char (line-beginning-position))
-             (org-format--ensure-empty-lines org-format-blank-lines-before-subheadings))))))))
+       (org-format--transclusions)))))
 
 ;; NB: Set this higher than the default to avoid interfering with things like
 ;; org-transclusion, etc.
@@ -144,9 +159,9 @@ Only applies to level-1 headings in the document."
   :lighter nil
   (cond
    (org-format-on-save-mode
-    (add-hook 'before-save-hook 'org-format-all-headings org-format-on-save-mode-hook-depth t))
+    (add-hook 'before-save-hook 'org-format-buffer org-format-on-save-mode-hook-depth t))
    (t
-    (remove-hook 'before-save-hook 'org-format-all-headings t))))
+    (remove-hook 'before-save-hook 'org-format-buffer t))))
 
 (provide 'org-format)
 
