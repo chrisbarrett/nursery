@@ -65,6 +65,9 @@
 ;;
 ;;   As a use-case, you might use this to search for nodes that haven't been
 ;;   worked into the text of the current node.
+;;
+;; - :include-same-file, when non-nil, includes backlinks from nodes within the
+;;   same file.
 
 ;; Implemented filters:
 ;;
@@ -190,7 +193,7 @@ their blocks updated automatically."
   (-on #'string-lessp (-compose #'downcase #'org-roam-dblocks-link-desc)))
 
 (plisty-define org-roam-dblocks-args
-  :optional (:id :match :tags :only-missing
+  :optional (:id :match :tags :only-missing :include-same-file
              :name :indentation-column :content :forbidden-ids
              :filter :remove :indent))
 
@@ -300,10 +303,13 @@ predicates.")
 (defun org-roam-dblocks--compiled-predicates (params)
   (let ((tags (org-tags-filter-parse (org-roam-dblocks-args-tags params)))
         (match (org-roam-dblocks--parse-regexp-form (org-roam-dblocks-args-match params)))
-        (predicate (org-roam-dblocks--compile-filter-fns params)))
+        (predicate (org-roam-dblocks--compile-filter-fns params))
+        (file-for-id (org-roam-node-file (org-roam-node-from-id (org-roam-dblocks-args-id params)))))
     (lambda (node)
       (when (and (not (seq-contains-p (org-roam-dblocks-args-forbidden-ids params)
                                       (org-roam-node-id node)))
+                 (or (org-roam-dblocks-args-include-same-file params)
+                     (not (equal file-for-id (org-roam-node-file node))))
                  (org-roam-dblocks--eval-regexp-predicate node match)
                  (org-roam-dblocks--eval-tags-predicate node tags)
                  (funcall predicate node))
