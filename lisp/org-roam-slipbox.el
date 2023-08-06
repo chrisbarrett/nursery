@@ -122,7 +122,6 @@ tag applied."
           (org-roam-slipbox--sanitize-tag (file-name-nondirectory dir))))
     (error org-roam-slipbox-default)))
 
-;;;###autoload
 (cl-defmethod org-roam-node-slipbox ((node org-roam-node))
   "Return the slipbox a NODE belongs to.
 
@@ -133,6 +132,11 @@ See also: `org-roam-slipbox-default'."
    (if org-roam-capture--node
        (expand-file-name ".placeholder")
      (org-roam-node-file node))))
+
+;; NOTE: Cannot use autoload magic comment directly on a defmethod.
+
+;;;###autoload
+(autoload 'org-roam-node-slipbox "org-roam-slipbox")
 
 (defun org-roam-slipbox--rename-file-without-git (from to)
   "Move file FROM to TO, updating the file's buffer if open.
