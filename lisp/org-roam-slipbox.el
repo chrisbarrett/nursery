@@ -149,8 +149,8 @@ Adapted from `magit-file-rename', but with the git actions stripped out."
         (set-visited-file-name to nil t)))))
 
 (defun org-roam-slipbox--rename-file-with-magit (from to)
-  (let ((repo-a (magit-toplevel (f-dirname from)))
-        (repo-b (magit-toplevel (f-dirname to))))
+  (let ((repo-a (magit-toplevel (file-name-directory from)))
+        (repo-b (magit-toplevel (file-name-directory to))))
 
     ;; Ensure the file is tracked by git.
     (magit-call-git "add" (magit-convert-filename-for-git from))
@@ -162,7 +162,7 @@ Adapted from `magit-file-rename', but with the git actions stripped out."
         (magit-call-git "add" (magit-convert-filename-for-git to))))))
 
 (defun org-roam-slipbox--read (&optional current-slipbox)
-  (let ((slipboxes (seq-difference (seq-map #'f-base (f-directories org-roam-directory))
+  (let ((slipboxes (seq-difference (f-directories org-roam-directory)
                                    (list current-slipbox))))
     (completing-read "Slipbox: " slipboxes nil t)))
 
@@ -178,14 +178,14 @@ Adapted from `magit-file-rename', but with the git actions stripped out."
     (cond
      ((zerop (org-roam-node-level node))
       (let ((file (org-roam-node-file node)))
-        (setq dest (f-join org-roam-directory slipbox (f-filename file)))
+        (setq dest (file-name-concat org-roam-directory slipbox (file-name-nondirectory file)))
         (if org-roam-slipbox-use-git-p
             (org-roam-slipbox--rename-file-with-magit file dest)
           (org-roam-slipbox--rename-file-without-git file dest))
         (org-roam-db-sync)))
      (t
-      (let ((new-file (f-filename (org-roam-rewrite--new-filename-from-capture-template node))))
-        (setq dest (f-join org-roam-directory slipbox new-file))
+      (let ((new-file (file-name-nondirectory (org-roam-rewrite--new-filename-from-capture-template node))))
+        (setq dest (file-name-concat org-roam-directory slipbox new-file))
         (org-roam-rewrite-extract node dest))))
 
     (run-hooks 'org-roam-slipbox-after-refile-hook)
