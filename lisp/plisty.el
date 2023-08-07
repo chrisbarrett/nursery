@@ -2,13 +2,9 @@
 
 ;; Copyright (C) 2022  Chris Barrett
 
-;; Package-Requires: ((emacs "27.1") (dash "2.19.1") (ht "2.4"))
-
 ;; Author: Chris Barrett <chris+emacs@walrus.cool>
 
 ;; Homepage: https://github.com/chrisbarrett/nursery
-
-;; Version: 0.0.1-pre
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

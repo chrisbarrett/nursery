@@ -6,10 +6,6 @@
 
 ;; Homepage: https://github.com/chrisbarrett/nursery
 
-;; Version: 0.0.1-pre
-
-;; Package-Requires: ((emacs "27.1") (org "9.5.3") (org-roam "2.2.2"))
-
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or

@@ -4,11 +4,7 @@
 
 ;; Author: Chris Barrett <chris+emacs@walrus.cool>
 
-;; Package-Requires: ((emacs "27.1") (async "1.9.5") (dash "2.19.1") (org-roam "2.2.2") (pcre2el "1.8"))
-
 ;; Homepage: https://github.com/chrisbarrett/nursery
-
-;; Version: 0.0.1-pre
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

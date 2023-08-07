@@ -2,11 +2,7 @@
 
 ;; Copyright (C) 2022  Chris Barrett
 
-;; Package-Requires: ((emacs "27.2") (dash "2.19.1") (f "0.17.2") (org-roam "2.2.2"))
-
 ;; Homepage: https://github.com/chrisbarrett/nursery
-
-;; Version: 0.0.1-pre
 
 ;; Author: Chris Barrett <chris+emacs@walrus.cool>
 
@@ -31,7 +27,6 @@
 ;;; Code:
 
 (require 'dash)
-(require 'f)
 (require 'org)
 (require 'org-roam)
 (require 'plisty)
