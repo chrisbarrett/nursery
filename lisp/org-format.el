@@ -126,6 +126,7 @@ Only applies to level-1 headings in the document."
         (goto-char (line-beginning-position))
         (org-format--ensure-empty-lines org-format-blank-lines-before-subheadings)))))
 
+;;;###autoload
 (defun org-format-buffer ()
   "Format the current `org-mode' buffer."
   (interactive)
@@ -154,6 +155,7 @@ Only applies to level-1 headings in the document."
 ;; org-transclusion, etc.
 (defvar org-format-on-save-mode-hook-depth 95)
 
+;;;###autoload
 (define-minor-mode org-format-on-save-mode
   "Minor mode to enable formatting on buffer save in `org-mode'."
   :lighter nil
