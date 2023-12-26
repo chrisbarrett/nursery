@@ -131,11 +131,10 @@ Only applies to level-1 headings in the document."
   "Format the current `org-mode' buffer."
   (interactive)
   (unless (org-capture-detect)
-    (let ((scope (if (org-format--in-archived-heading-p)
-                     ;; archive files can be enormous--just format the heading at
-                     ;; point after archiving.
-                     'tree
-                   'file)))
+    (let ((scope (when (org-format--in-archived-heading-p)
+                   ;; archive files can be enormous--just format the heading at
+                   ;; point after archiving.
+                   'tree)))
       (org-with-wide-buffer
 
        (when org-format-align-all-tables
