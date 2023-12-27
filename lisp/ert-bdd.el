@@ -16,8 +16,7 @@
 ;;; Code:
 
 (require 'cl-lib)
-
-(autoload 'ert-deftest "ert")
+(require 'ert)
 
 ;;; HACK: Initially define no-op so tests can be defined inline.
 
