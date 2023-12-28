@@ -167,7 +167,7 @@ If non-nil, only org-roam nodes with the specified tags have
 their blocks updated automatically."
   :group 'org-roam-dblocks
   :type '(choice (const nil)
-                 (repeat :tag "Tag" (string))))
+          (repeat :tag "Tag" (string))))
 
 (defcustom org-roam-dblocks-autoupdate-silently-p t
   "Whether to suppress messages during the dblock update process."
@@ -228,8 +228,8 @@ their blocks updated automatically."
 
 (defconst org-roam-dblocks--node-slot-symbols
   '(file file-title file-hash file-atime file-mtime
-         id level point todo priority scheduled deadline title properties olp
-         tags aliases refs)
+    id level point todo priority scheduled deadline title properties olp
+    tags aliases refs)
   "A list of slots names on org-roam-nodes.
 
 This list is used to create lexical bindings in anaphoric
@@ -252,13 +252,13 @@ predicates.")
   ;; (org-roam-dblocks--parse-filter-fn :foo 'it)
   ;; (org-roam-dblocks--parse-filter-fn :foo '(equal it 0))
   (cl-macrolet ((lambda-with-error-handling (binding &rest body)
-                                            `(lambda ,binding
-                                               (condition-case-unless-debug err
-                                                   (progn ,@body)
-                                                 (error
-                                                  (error "Error evaluating %s form: %s"
-                                                         keyword
-                                                         (error-message-string err)))))))
+                  `(lambda ,binding
+                     (condition-case-unless-debug err
+                         (progn ,@body)
+                       (error
+                        (error "Error evaluating %s form: %s"
+                               keyword
+                               (error-message-string err)))))))
     (cond
      ((null form)
       nil)
