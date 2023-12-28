@@ -323,6 +323,10 @@ predicates.")
         (not-in-block (make-hash-table :test 'equal)))
     (with-temp-buffer
       (insert-file-contents (org-roam-node-file node))
+      (let ((org-inhibit-startup t)
+            (org-inhibit-logging t))
+        (delay-mode-hooks (org-mode)))
+
       (pcase-dolist (`(,pos ,id) forward-links)
         (goto-char pos)
         (let ((block-args (cadr (org-element-lineage (org-element-at-point) '(dynamic-block)))))
@@ -482,9 +486,10 @@ and old content."
 
 
 (defun org-roam-dblocks--update-block-at-point-p ()
-  (or (null org-roam-dblocks-auto-refresh-tags)
-      (seq-intersection org-roam-dblocks-auto-refresh-tags
-                        (append org-file-tags (org-get-tags)))))
+  (when (derived-mode-p 'org-mode)
+    (or (null org-roam-dblocks-auto-refresh-tags)
+        (seq-intersection org-roam-dblocks-auto-refresh-tags
+                          (append org-file-tags (org-get-tags))))))
 
 (defun org-roam-dblocks--update-blocks ()
   (let ((message-log-max (if org-roam-dblocks-autoupdate-silently-p nil message-log-max)))
