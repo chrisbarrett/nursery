@@ -279,7 +279,10 @@ A higher score means that the node will appear less frequently."
   (declare (indent 0))
   `(if-let* ((buf (car (org-roam-review-buffers))))
        (with-current-buffer buf
-         ,@body)
+         ;; KLUDGE: Suppress warnings from org-element about this being a
+         ;; non-org-mode buffer.
+         (let ((major-mode 'org-mode))
+           ,@body))
      (error "No review buffer")))
 
 (defun org-roam-review--daily-file-p (&optional file)
