@@ -178,7 +178,8 @@ Adapted from `magit-file-rename', but with the git actions stripped out."
     (cond
      ((zerop (org-roam-node-level node))
       (let ((file (org-roam-node-file node)))
-        (setq dest (file-name-concat org-roam-directory slipbox (file-name-nondirectory file)))
+        (setq dest (expand-file-name (file-name-concat slipbox (file-name-nondirectory file))
+                                     org-roam-directory))
         (if org-roam-slipbox-use-git-p
             (org-roam-slipbox--rename-file-with-magit file dest)
           (org-roam-slipbox--rename-file-without-git file dest))
