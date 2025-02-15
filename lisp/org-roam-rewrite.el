@@ -159,24 +159,24 @@ It is called with the renamed node as the current buffer."
 (plisty-define org-roam-rewrite-backlink-transformer-result
   :required (:id :desc))
 
+(defun org-roam-rewrite--normalise-title (title)
+  (replace-regexp-in-string (rx (+ (any space "\n"))) ""
+                            (downcase title)))
+
 (defun org-roam-rewrite-backlink-transformer (args-plist)
-  (cl-labels ((normalise
-               (str)
-               (replace-regexp-in-string (rx (+ (any space "\n"))) ""
-                                         (downcase str))))
-    (-let* (((&plist :prev-node :new-id :new-desc :prev-desc)
-             args-plist)
+  (-let* (((&plist :prev-node :new-id :new-desc :prev-desc)
+           args-plist)
 
-            (norm-titles (cons (normalise (org-roam-node-title prev-node))
-                               (seq-map 'normalise (org-roam-node-aliases prev-node))))
+          (norm-titles (cons (org-roam-rewrite--normalise-title (org-roam-node-title prev-node))
+                             (seq-map #'org-roam-rewrite--normalise-title (org-roam-node-aliases prev-node))))
 
-            (desc-customised-p
-             (not (seq-contains-p norm-titles (normalise prev-desc))))
+          (desc-customised-p
+           (not (seq-contains-p norm-titles (org-roam-rewrite--normalise-title prev-desc))))
 
-            (updated-desc
-             (if desc-customised-p prev-desc new-desc)))
+          (updated-desc
+           (if desc-customised-p prev-desc new-desc)))
 
-      (list :id new-id :desc updated-desc))))
+    (list :id new-id :desc updated-desc)))
 
 (defun org-roam-rewrite--parse-link-at-point ()
   (save-match-data
